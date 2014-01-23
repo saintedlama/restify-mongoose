@@ -1,48 +1,46 @@
 var util = require('util');
 
-var notFound = function(res, id) {
-    res.send(404, { error : util.format('Could not find resource with id \'%s\'', id) });
+var notFound = function (res, id) {
+    res.send(404, { error: util.format('Could not find resource with id \'%s\'', id) });
 }
 
-var notValid = function(res, next, err) {
+var notValid = function (res, next, err) {
     if ('ValidationError' !== err.name) {
         return next(err);
     }
 
-    return res.send(400, { message : 'Validation failed', errors : err.errors });
+    return res.send(400, { message: 'Validation failed', errors: err.errors });
 }
 
-/**
- *
- * @param Model
- * @param options
- * @constructor
- */
-var Resource = function(Model, options) {
+var Resource = function (Model, options) {
     this.Model = Model;
 
     this.options = options || {};
     this.options.pageSize = this.options.pageSize || 100;
-    this.options.listProjection = this.options.listProjection || function(req, item) { return item; };
-    this.options.detailProjection = this.options.detailProjection || function(req, item) { return item; };
+    this.options.listProjection = this.options.listProjection || function (req, item) {
+        return item;
+    };
+    this.options.detailProjection = this.options.detailProjection || function (req, item) {
+        return item;
+    };
 }
 
-Resource.prototype.query = function(options) {
+Resource.prototype.query = function (options) {
     var self = this;
 
-    options = options|| {};
+    options = options || {};
     options.pageSize = options.pageSize || this.options.pageSize;
     options.projection = options.projection || this.options.listProjection;
 
-    return function(req, res, next) {
+    return function (req, res, next) {
         var query = self.Model.find({});
 
-        if (req.query.q)  {
+        if (req.query.q) {
             try {
                 var q = JSON.parse(req.query.q);
                 query = query.where(q);
             } catch (err) {
-                return res.send(400, { message : 'Query is not a valid JSON object', errors : err });
+                return res.send(400, { message: 'Query is not a valid JSON object', errors: err });
             }
         }
 
@@ -62,8 +60,10 @@ Resource.prototype.query = function(options) {
         query.skip(options.pageSize * page);
         query.limit(options.pageSize);
 
-        query.exec(function(err, models) {
-            if (err) { return next(err); }
+        query.exec(function (err, models) {
+            if (err) {
+                return next(err);
+            }
 
             var projection = options.projection.bind(self, req);
             res.send(200, models.map(projection));
@@ -71,21 +71,23 @@ Resource.prototype.query = function(options) {
     }
 }
 
-Resource.prototype.detail = function(options) {
+Resource.prototype.detail = function (options) {
     var self = this;
 
-    options = options|| {};
+    options = options || {};
     options.projection = options.projection || this.options.detailProjection;
 
-    return function(req, res, next) {
-        var query = self.Model.findOne({ _id : req.params.id});
+    return function (req, res, next) {
+        var query = self.Model.findOne({ _id: req.params.id});
 
         if (self.options.filter) {
             query = query.where(self.options.filter(req, res));
         }
 
-        query.exec(function(err, model) {
-            if (err) { return next(err); }
+        query.exec(function (err, model) {
+            if (err) {
+                return next(err);
+            }
 
             if (!model) {
                 return notFound(res, req.params.id);
@@ -98,11 +100,11 @@ Resource.prototype.detail = function(options) {
     }
 }
 
-Resource.prototype.insert = function() {
+Resource.prototype.insert = function () {
     var self = this;
 
-    return function(req, res, next) {
-        self.Model.create(req.body, function(err, model) {
+    return function (req, res, next) {
+        self.Model.create(req.body, function (err, model) {
             if (err) {
                 return notValid(res, next, err);
             }
@@ -114,17 +116,17 @@ Resource.prototype.insert = function() {
     }
 }
 
-Resource.prototype.update = function() {
+Resource.prototype.update = function () {
     var self = this;
 
-    return function(req, res, next) {
-        var query = self.Model.findOne({ _id : req.params.id});
+    return function (req, res, next) {
+        var query = self.Model.findOne({ _id: req.params.id});
 
         if (self.options.filter) {
             query = query.where(self.options.filter(req, res));
         }
 
-        query.exec(function(err, model) {
+        query.exec(function (err, model) {
             if (err) {
                 return next(err);
             }
@@ -140,7 +142,7 @@ Resource.prototype.update = function() {
 
             model.set(req.body);
 
-            model.save(function(err) {
+            model.save(function (err) {
                 if (err) {
                     return notValid(res, next, err);
                 }
@@ -151,17 +153,17 @@ Resource.prototype.update = function() {
     }
 }
 
-Resource.prototype.remove = function() {
+Resource.prototype.remove = function () {
     var self = this;
 
-    return function(req, res, next) {
-        var query = self.Model.findOne({ _id : req.params.id});
+    return function (req, res, next) {
+        var query = self.Model.findOne({ _id: req.params.id});
 
         if (self.options.filter) {
             query = query.where(self.options.filter(req, res));
         }
 
-        query.exec(function(err, model) {
+        query.exec(function (err, model) {
             if (err) {
                 return next(err);
             }
@@ -170,7 +172,7 @@ Resource.prototype.remove = function() {
                 return notFound(res, req.params.id);
             }
 
-            model.remove(function(err) {
+            model.remove(function (err) {
                 if (err) {
                     return next(err);
                 }
@@ -181,8 +183,8 @@ Resource.prototype.remove = function() {
     }
 }
 
-Resource.prototype.serve = function(path, server) {
-    var closedPath = path[path.length - 1] == '/'?path:path + '/';
+Resource.prototype.serve = function (path, server) {
+    var closedPath = path[path.length - 1] == '/' ? path : path + '/';
 
     server.get(path, this.query());
     server.get(closedPath + ':id', this.detail());
@@ -191,7 +193,7 @@ Resource.prototype.serve = function(path, server) {
     server.patch(closedPath + ':id', this.update());
 }
 
-module.exports = function(Model, options) {
+module.exports = function (Model, options) {
     if (!Model) {
         throw new Error('Model argument is required');
     }
