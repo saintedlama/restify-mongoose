@@ -1,0 +1,23 @@
+{
+  "name": "restify-mongoose",
+  "version": "0.1.0",
+  "description": "Expose mongoose models as REST resources",
+  "main": "index.js",
+  "dependencies": {
+    "restify": "~2.6.1",
+    "mongoose": "~3.8.3",
+    "supertest": "~0.8.3",
+    "chai": "~1.8.1"
+  },
+  "keywords": [
+    "restify",
+    "mongoose",
+    "REST",
+    "resource"
+  ],
+  "author": "christoph.walcher@gmail.com",
+  "license": "BSD-2-Clause",
+  "devDependencies": {
+    "mocha": "~1.17.1"
+  }
+}

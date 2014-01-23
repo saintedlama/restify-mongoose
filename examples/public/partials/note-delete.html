@@ -1,0 +1,27 @@
+<div class="col-lg-12">
+    <h2>Delete Note</h2>
+    <p>
+        Really delete note?
+    </p>
+    <dl>
+        <dt>Title</dt>
+        <dd>{{note.title}}</dd>
+
+        <dt>Date</dt>
+        <dd>{{note.date}}</dd>
+
+        <dt>Tags</dt>
+        <dd><ng-tags tags="note.tags" /></dd>
+
+        <dt>Content</dt>
+        <dd>{{note.content}}</dd>
+    </dl>
+
+    <div class="panel-footer">
+        {{delete}}
+        <a href="#/notes" title="List"><span class="glyphicon glyphicon-list"></span></a>
+        <a href="#/notes/detail/{{note._id}}" title="Detail"><span class="glyphicon glyphicon-zoom-in"></span></a>
+        <a href="#/notes/edit/{{note._id}}" title="Edit"><span class="glyphicon glyphicon-pencil"></span></a>
+        <a href="#" title="Delete" class="pull-right" ng-click="delete()"><span class="glyphicon glyphicon-remove"></span></a>
+    </div>
+</div>
