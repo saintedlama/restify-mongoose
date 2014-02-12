@@ -1,4 +1,5 @@
 var util = require('util');
+var EventEmitter = require('events').EventEmitter;
 
 var notFound = function (res, id) {
     res.send(404, { error: util.format('Could not find resource with id \'%s\'', id) });
@@ -13,6 +14,8 @@ var notValid = function (res, next, err) {
 }
 
 var Resource = function (Model, options) {
+    EventEmitter.call(this);
+
     this.Model = Model;
 
     this.options = options || {};
@@ -20,10 +23,13 @@ var Resource = function (Model, options) {
     this.options.listProjection = this.options.listProjection || function (req, item) {
         return item;
     };
+
     this.options.detailProjection = this.options.detailProjection || function (req, item) {
         return item;
     };
 }
+
+util.inherits(Resource, EventEmitter);
 
 Resource.prototype.query = function (options) {
     var self = this;
@@ -66,7 +72,12 @@ Resource.prototype.query = function (options) {
             }
 
             var projection = options.projection.bind(self, req);
-            res.send(200, models.map(projection));
+            var result = models.map(projection);
+            res.send(200, result);
+
+            self.emit('query', result);
+
+            next();
         });
     }
 }
@@ -94,7 +105,11 @@ Resource.prototype.detail = function (options) {
             }
 
             var projection = options.projection.bind(self, req);
-            res.send(200, projection(model));
+            var result = projection(model);
+            res.send(200, result);
+
+            self.emit('detail', result);
+
             next();
         });
     }
@@ -111,6 +126,9 @@ Resource.prototype.insert = function () {
 
             res.header('Location', req.url + '/' + model._id);
             res.send(200, model);
+
+            self.emit('insert', model);
+
             next();
         });
     }
@@ -148,6 +166,10 @@ Resource.prototype.update = function () {
                 }
 
                 res.send(200, model);
+
+                self.emit('update', model);
+
+                next();
             });
         });
     }
@@ -178,6 +200,10 @@ Resource.prototype.remove = function () {
                 }
 
                 res.send(200, model);
+
+                self.emit('remove', model);
+
+                next();
             });
         });
     }
