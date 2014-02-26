@@ -15,16 +15,14 @@ var globalOptions = {};
 var notes = restifyMongoose(Note, globalOptions);
 
 // Serve model Notes as a REST API
-var options = {};
 
-server.get('/notes', notes.query(options));
-server.get('/notes/:id', notes.detail(options));
-server.post('/notes', notes.insert(options));
-server.patch('/notes/:id', notes.update(options));
-server.del('/notes/:id', notes.remove(options));
+server.get('/notes', notes.query());
+server.get('/notes/:id', notes.detail());
+server.post('/notes', notes.insert());
+server.patch('/notes/:id', notes.update());
+server.del('/notes/:id', notes.remove());
 
 module.exports = server;
 module.exports.globalOptions = globalOptions;
-module.exports.options = options;
 module.exports.Note = Note;
 module.exports.notes = notes;

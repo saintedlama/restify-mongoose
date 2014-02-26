@@ -79,7 +79,6 @@ Resource.prototype.detail = function (options) {
 
   options = options || {};
   options.projection = options.projection || this.options.detailProjection;
-
   return function (req, res, next) {
     var query = self.Model.findOne({ _id: req.params.id});
 

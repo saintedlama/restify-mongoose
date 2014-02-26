@@ -9,14 +9,10 @@ var Note = require('./note');
 var mongoTest = require('./util/mongotest');
 
 var resetOptions = function() {
-  // Reset options and globalOptions,
+  // Reset globalOptions,
   // We can't override them with {} since we'd lose closure references in the lib.
   var key;
   for(key in server.globalOptions) {
-    delete server.globalOptions[key];
-  }
-
-  for(key in server.options) {
     delete server.globalOptions[key];
   }
 };
