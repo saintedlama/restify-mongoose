@@ -30,7 +30,7 @@ describe('restify-mongoose', function () {
         .end(done);
     });
 
-    it('should filter notes', function (done) {
+    it('should filter notes according to query', function (done) {
       request(server)
         .get('/notes?q={"title":"first"}')
         .expect('Content-Type', /json/)
@@ -40,6 +40,27 @@ describe('restify-mongoose', function () {
           res.body[0].title.should.equal('first');
         })
         .end(done);
+    });
+
+    it('should filter notes according to options', function (done) {
+      var filter = function() {
+        return {"title":"second"};
+      };
+
+      server.globalOptions.filter = filter;
+
+      request(server)
+        .get('/notes')
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function(res) {
+          res.body.should.have.length(1);
+          res.body[0].title.should.equal('second');
+        })
+        .end(function(err) {
+          delete server.globalOptions.filter;
+          done(err);
+        });
     });
 
     it('should sort notes', function (done) {
