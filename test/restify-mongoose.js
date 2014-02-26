@@ -24,14 +24,10 @@ describe('restify-mongoose', function () {
         .get('/notes')
         .expect('Content-Type', /json/)
         .expect(200)
-        .end(function (err, res) {
-          if(err) {
-            throw err;
-          }
-
+        .expect(function(res) {
           res.body.should.have.lengthOf(3);
-          done();
-        });
+        })
+        .end(done);
     });
 
     it('should filter notes', function (done) {
@@ -39,15 +35,11 @@ describe('restify-mongoose', function () {
         .get('/notes?q={"title":"first"}')
         .expect('Content-Type', /json/)
         .expect(200)
-        .end(function (err, res) {
-          if(err) {
-            throw err;
-          }
-
+        .expect(function(res) {
           res.body.should.have.length(1);
           res.body[0].title.should.equal('first');
-          done();
-        });
+        })
+        .end(done);
     });
 
     it('should filter notes', function (done) {
@@ -55,15 +47,11 @@ describe('restify-mongoose', function () {
         .get('/notes?q={"title":"first"}')
         .expect('Content-Type', /json/)
         .expect(200)
-        .end(function (err, res) {
-          if(err) {
-            throw err;
-          }
-
+        .expect(function(res) {
           res.body.should.have.lengthOf(1);
           res.body[0].title.should.equal('first');
-          done();
-        });
+        })
+        .end(done);
     });
 
     it('should sort notes', function (done) {
@@ -71,17 +59,12 @@ describe('restify-mongoose', function () {
         .get('/notes?sort=-title')
         .expect('Content-Type', /json/)
         .expect(200)
-        .end(function (err, res) {
-          if(err) {
-            throw err;
-          }
-
+        .expect(function(res) {
           res.body[0].title.should.equal('third');
           res.body[1].title.should.equal('second');
           res.body[2].title.should.equal('first');
-
-          done();
-        });
+        })
+        .end(done);
     });
 
     it('should select fields of notes', function (done) {
@@ -89,17 +72,12 @@ describe('restify-mongoose', function () {
         .get('/notes?select=date')
         .expect('Content-Type', /json/)
         .expect(200)
-        .end(function (err, res) {
-          if(err) {
-            throw err;
-          }
-
+        .expect(function(res) {
           res.body[0].should.not.have.property('title');
           res.body[1].should.not.have.property('title');
           res.body[2].should.not.have.property('title');
-
-          done();
-        });
+        })
+        .end(done);
     });
   });
 
@@ -117,14 +95,10 @@ describe('restify-mongoose', function () {
           .get('/notes/' + note.id)
           .expect('Content-Type', /json/)
           .expect(200)
-          .end(function (err, res) {
-            if(err) {
-              throw err;
-            }
-
+          .expect(function(res) {
             res.body.title.should.equal('detailtitle');
-            done();
-          });
+          })
+          .end(done);
       });
     });
 
@@ -134,7 +108,8 @@ describe('restify-mongoose', function () {
       request(server)
         .get('/notes/' + id.toString())
         .expect('Content-Type', /json/)
-        .expect(404, done);
+        .expect(404)
+        .end(done);
     });
   });
 
@@ -148,13 +123,10 @@ describe('restify-mongoose', function () {
         .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(200)
-        .end(function (err, res) {
-          if(err) {
-            throw err;
-          }
+        .expect(function(res) {
           res.headers.should.have.property("location");
-          done();
-        });
+        })
+        .end(done);
     });
 
     it('should respond with 400 if not valid', function (done) {
@@ -162,7 +134,8 @@ describe('restify-mongoose', function () {
         .post('/notes')
         .send({ title: 'Buy a ukulele' })
         .expect('Content-Type', /json/)
-        .expect(400, done);
+        .expect(400)
+        .end(done);
     });
   });
 
@@ -180,7 +153,8 @@ describe('restify-mongoose', function () {
           .patch('/notes/' + note.id)
           .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
-          .expect(200, done);
+          .expect(200)
+          .end(done);
       });
     });
 
@@ -191,7 +165,8 @@ describe('restify-mongoose', function () {
         .patch('/notes/' + id.toString())
         .send({ title: 'Buy a guitar'})
         .expect('Content-Type', /json/)
-        .expect(404, done);
+        .expect(404)
+        .end(done);
     });
   });
 
@@ -208,7 +183,8 @@ describe('restify-mongoose', function () {
         request(server)
           .del('/notes/' + note.id)
           .expect('Content-Type', /json/)
-          .expect(200, done);
+          .expect(200)
+          .end(done);
       });
     });
 
@@ -219,7 +195,8 @@ describe('restify-mongoose', function () {
         .del('/notes/' + id.toString())
         .send({ title: 'Buy a guitar'})
         .expect('Content-Type', /json/)
-        .expect(404, done);
+        .expect(404)
+        .end(done);
     });
   });
 });
