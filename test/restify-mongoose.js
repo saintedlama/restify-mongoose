@@ -8,7 +8,23 @@ var server = require('./server');
 var Note = require('./note');
 var mongoTest = require('./util/mongotest');
 
+var resetOptions = function() {
+  // Reset options and globalOptions,
+  // We can't override them with {} since we'd lose closure references in the lib.
+  var key;
+  for(key in server.globalOptions) {
+    delete server.globalOptions[key];
+  }
+
+  for(key in server.options) {
+    delete server.globalOptions[key];
+  }
+};
+
 describe('restify-mongoose', function () {
+  beforeEach(resetOptions);
+  afterEach(resetOptions);
+
   describe('query', function () {
     before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
     before(mongoTest.populate(Note,
@@ -57,10 +73,7 @@ describe('restify-mongoose', function () {
           res.body.should.have.length(1);
           res.body[0].title.should.equal('second');
         })
-        .end(function(err) {
-          delete server.globalOptions.filter;
-          done(err);
-        });
+        .end(done);
     });
 
     it('should sort notes', function (done) {
@@ -120,6 +133,23 @@ describe('restify-mongoose', function () {
         .expect(404)
         .end(done);
     });
+
+    it('should filter notes according to options', function (done) {
+      Note.create({ title: 'detailtitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        var filter = function() {
+          return {"title":"doesNotExists"};
+        };
+        server.globalOptions.filter = filter;
+        request(server)
+          .get('/notes/' + note.id)
+          .expect(404)
+          .end(done);
+      });
+    });
   });
 
   describe('new', function () {
@@ -177,6 +207,25 @@ describe('restify-mongoose', function () {
         .expect(404)
         .end(done);
     });
+
+    it('should filter notes according to options', function (done) {
+      Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        var filter = function() {
+          return {"title":"doesNotExists"};
+        };
+        server.globalOptions.filter = filter;
+
+        request(server)
+          .patch('/notes/' + note.id)
+          .send({ title: 'Buy a ukulele' })
+          .expect(404)
+          .end(done);
+      });
+    });
   });
 
   describe('delete', function () {
@@ -206,6 +255,24 @@ describe('restify-mongoose', function () {
         .expect('Content-Type', /json/)
         .expect(404)
         .end(done);
+    });
+
+    it('should filter notes according to options', function (done) {
+      Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        var filter = function() {
+          return {"title":"doesNotExists"};
+        };
+        server.globalOptions.filter = filter;
+
+        request(server)
+          .del('/notes/' + note.id)
+          .expect(404)
+          .end(done);
+      });
     });
   });
 });
