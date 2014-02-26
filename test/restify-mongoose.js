@@ -58,6 +58,14 @@ describe('restify-mongoose', function () {
         .end(done);
     });
 
+    it('should fail on invalid query', function (done) {
+      request(server)
+        .get('/notes?q={title"first"}')
+        .expect('Content-Type', /json/)
+        .expect(400)
+        .end(done);
+    });
+
     it('should filter notes according to options', function (done) {
       var filter = function() {
         return {"title":"second"};
@@ -193,6 +201,20 @@ describe('restify-mongoose', function () {
           .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
           .expect(200)
+          .end(done);
+      });
+    });
+
+    it('should fail on invalid content', function (done) {
+      Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        request(server)
+          .patch('/notes/' + note.id)
+          .send()
+          .expect(400)
           .end(done);
       });
     });

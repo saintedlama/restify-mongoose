@@ -1,6 +1,7 @@
 'use strict';
 
 var util = require('util');
+var restify = require('restify');
 
 var notFound = function (res, id) {
   res.send(404, { error: util.format('Could not find resource with id \'%s\'', id) });
@@ -139,7 +140,7 @@ Resource.prototype.update = function () {
 
       if (!req.body) {
         // TODO: Rework notValid method to allow this err be treated by restify
-        return notValid(res, next, new Error('No update data sent'));
+        return notValid(res, next, new restify.InvalidContentError('No update data sent'));
       }
 
       model.set(req.body);
