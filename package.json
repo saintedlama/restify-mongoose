@@ -2,10 +2,10 @@
   "name": "restify-mongoose",
   "version": "0.1.1",
   "description": "Expose mongoose models as REST resources",
+  "author": "christoph.walcher@gmail.com",
   "main": "index.js",
-  "dependencies": {
-    "restify": "~2.6.1",
-    "mongoose": "~3.8.3"
+  "scripts": {
+    "test": "NODE_ENV=test mocha -R spec test/"
   },
   "keywords": [
     "restify",
@@ -13,12 +13,15 @@
     "REST",
     "resource"
   ],
-  "author": "christoph.walcher@gmail.com",
   "license": "BSD-2-Clause",
+  "dependencies": {
+    "restify": "~2.6.1",
+    "mongoose": "~3.8.3"
+  },
   "devDependencies": {
     "mocha": "~1.17.1",
     "supertest": "~0.8.3",
-    "chai": "~1.8.1"
+    "should": "3.1.x"
   },
   "bugs" : "https://github.com/saintedlama/restify-mongoose/issues",
   "repository" : {

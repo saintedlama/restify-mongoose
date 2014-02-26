@@ -1,7 +1,7 @@
 'use strict';
+require("should");
 
 var request = require('supertest');
-var expect = require('chai').expect;
 var mongoose = require('mongoose');
 
 var server = require('./server');
@@ -25,9 +25,11 @@ describe('restify-mongoose', function () {
         .expect('Content-Type', /json/)
         .expect(200)
         .end(function (err, res) {
-          expect(err).to.not.exist;
+          if(err) {
+            throw err;
+          }
 
-          expect(res.body).to.have.length(3);
+          res.body.should.have.lengthOf(3);
           done();
         });
     });
@@ -38,10 +40,12 @@ describe('restify-mongoose', function () {
         .expect('Content-Type', /json/)
         .expect(200)
         .end(function (err, res) {
-          expect(err).to.not.exist;
+          if(err) {
+            throw err;
+          }
 
-          expect(res.body).to.have.length(1);
-          expect(res.body[0].title).to.equal('first');
+          res.body.should.have.length(1);
+          res.body[0].title.should.equal('first');
           done();
         });
     });
@@ -52,10 +56,12 @@ describe('restify-mongoose', function () {
         .expect('Content-Type', /json/)
         .expect(200)
         .end(function (err, res) {
-          expect(err).to.not.exist;
+          if(err) {
+            throw err;
+          }
 
-          expect(res.body).to.have.length(1);
-          expect(res.body[0].title).to.equal('first');
+          res.body.should.have.lengthOf(1);
+          res.body[0].title.should.equal('first');
           done();
         });
     });
@@ -66,11 +72,13 @@ describe('restify-mongoose', function () {
         .expect('Content-Type', /json/)
         .expect(200)
         .end(function (err, res) {
-          expect(err).to.not.exist;
+          if(err) {
+            throw err;
+          }
 
-          expect(res.body[0].title).to.equal('third');
-          expect(res.body[1].title).to.equal('second');
-          expect(res.body[2].title).to.equal('first');
+          res.body[0].title.should.equal('third');
+          res.body[1].title.should.equal('second');
+          res.body[2].title.should.equal('first');
 
           done();
         });
@@ -82,11 +90,13 @@ describe('restify-mongoose', function () {
         .expect('Content-Type', /json/)
         .expect(200)
         .end(function (err, res) {
-          expect(err).to.not.exist;
+          if(err) {
+            throw err;
+          }
 
-          expect(res.body[0]).to.not.have.property('title');
-          expect(res.body[1]).to.not.have.property('title');
-          expect(res.body[2]).to.not.have.property('title');
+          res.body[0].should.not.have.property('title');
+          res.body[1].should.not.have.property('title');
+          res.body[2].should.not.have.property('title');
 
           done();
         });
@@ -99,16 +109,20 @@ describe('restify-mongoose', function () {
 
     it('should select detail note', function (done) {
       Note.create({ title: 'detailtitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
-        expect(err).to.not.exist;
+        if(err) {
+          throw err;
+        }
 
         request(server)
           .get('/notes/' + note.id)
           .expect('Content-Type', /json/)
           .expect(200)
           .end(function (err, res) {
-            expect(err).to.not.exist;
+            if(err) {
+              throw err;
+            }
 
-            expect(res.body.title).to.equal('detailtitle');
+            res.body.title.should.equal('detailtitle');
             done();
           });
       });
@@ -135,8 +149,10 @@ describe('restify-mongoose', function () {
         .expect('Content-Type', /json/)
         .expect(200)
         .end(function (err, res) {
-          expect(err).to.not.exist;
-          expect(res.headers.location).to.exist;
+          if(err) {
+            throw err;
+          }
+          res.headers.should.have.property("location");
           done();
         });
     });
@@ -156,7 +172,9 @@ describe('restify-mongoose', function () {
 
     it('should update existing note', function (done) {
       Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
-        expect(err).to.not.exist;
+        if(err) {
+          throw err;
+        }
 
         request(server)
           .patch('/notes/' + note.id)
@@ -183,7 +201,9 @@ describe('restify-mongoose', function () {
 
     it('should delete existing note', function (done) {
       Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
-        expect(err).to.not.exist;
+        if(err) {
+          throw err;
+        }
 
         request(server)
           .del('/notes/' + note.id)
