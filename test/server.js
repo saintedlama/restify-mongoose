@@ -3,8 +3,8 @@ var restifyMongoose = require('../index');
 var Note = require('./note');
 
 var server = restify.createServer({
-    name: 'restify.mongoose.examples.notes',
-    version: '1.0.0'
+  name: 'restify.mongoose.examples.notes',
+  version: '1.0.0'
 });
 
 server.use(restify.acceptParser(server.acceptable));
