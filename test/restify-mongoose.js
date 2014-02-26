@@ -42,18 +42,6 @@ describe('restify-mongoose', function () {
         .end(done);
     });
 
-    it('should filter notes', function (done) {
-      request(server)
-        .get('/notes?q={"title":"first"}')
-        .expect('Content-Type', /json/)
-        .expect(200)
-        .expect(function(res) {
-          res.body.should.have.lengthOf(1);
-          res.body[0].title.should.equal('first');
-        })
-        .end(done);
-    });
-
     it('should sort notes', function (done) {
       request(server)
         .get('/notes?sort=-title')
