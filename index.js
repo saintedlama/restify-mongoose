@@ -59,22 +59,25 @@ Resource.prototype.query = function (options) {
     query.skip(options.pageSize * page);
     query.limit(options.pageSize);
 
-    query.exec(function (err, models) {
-      if (err) {
+    async.waterfall([
+      function retrieveModels(cb) {
+        query.exec(cb);
+      },
+      function buildProjections(models, cb) {
+        var iterator = function(model, cb) {
+          options.projection(req, model, cb);
+        };
+
+        async.map(models, iterator, cb);
+      },
+    ],
+    function(err, models) {
+      if(err) {
         return next(err);
       }
 
-      var iterator = function(model, cb) {
-        options.projection(req, model, cb);
-      };
-
-      async.map(models, iterator, function(err, models) {
-        if(err) {
-          return next(err);
-        }
-        res.send(200, models);
-        next();
-      });
+      res.send(models);
+      next();
     });
   };
 };
@@ -91,23 +94,25 @@ Resource.prototype.detail = function (options) {
       query = query.where(self.options.filter(req, res));
     }
 
-    query.exec(function (err, model) {
-      if (err) {
+    async.waterfall([
+      function retrieveModel(cb) {
+        query.exec(cb);
+      },
+      function buildProjection(model, cb) {
+        if (!model) {
+          return cb(new restify.ResourceNotFoundError(req.params.id));
+        }
+
+        options.projection(req, model, cb);
+      }
+    ],
+    function(err, model) {
+      if(err) {
         return next(err);
       }
 
-      if (!model) {
-        return next(new restify.ResourceNotFoundError(req.params.id));
-      }
-
-      options.projection(req, model, function(err, model) {
-        if(err) {
-          return next(err);
-        }
-
-        res.send(model);
-        next();
-      });
+      res.send(model);
+      next();
     });
   };
 };
