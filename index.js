@@ -70,15 +70,11 @@ Resource.prototype.query = function (options) {
 
         async.map(models, iterator, cb);
       },
-    ],
-    function(err, models) {
-      if(err) {
-        return next(err);
+      function sendDatas(model, cb) {
+        res.send(model);
+        cb();
       }
-
-      res.send(models);
-      next();
-    });
+    ], next);
   };
 };
 
@@ -104,16 +100,12 @@ Resource.prototype.detail = function (options) {
         }
 
         options.projection(req, model, cb);
+      },
+      function sendDatas(model, cb) {
+        res.send(model);
+        cb();
       }
-    ],
-    function(err, model) {
-      if(err) {
-        return next(err);
-      }
-
-      res.send(model);
-      next();
-    });
+    ], next);
   };
 };
 
