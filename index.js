@@ -1,5 +1,6 @@
 'use strict';
 
+var async = require('async');
 var restify = require('restify');
 
 var onError = function(err, next) {
@@ -15,11 +16,11 @@ var Resource = function (Model, options) {
 
   this.options = options || {};
   this.options.pageSize = this.options.pageSize || 100;
-  this.options.listProjection = this.options.listProjection || function (req, item) {
-    return item;
+  this.options.listProjection = this.options.listProjection || function (req, item, cb) {
+    cb(null, item);
   };
-  this.options.detailProjection = this.options.detailProjection || function (req, item) {
-    return item;
+  this.options.detailProjection = this.options.detailProjection || function (req, item, cb) {
+    cb(null, item);
   };
 };
 
@@ -63,8 +64,17 @@ Resource.prototype.query = function (options) {
         return next(err);
       }
 
-      var projection = options.projection.bind(self, req);
-      res.send(200, models.map(projection));
+      var iterator = function(model, cb) {
+        options.projection(req, model, cb);
+      };
+
+      async.map(models, iterator, function(err, models) {
+        if(err) {
+          return next(err);
+        }
+        res.send(200, models);
+        next();
+      });
     });
   };
 };
@@ -90,9 +100,14 @@ Resource.prototype.detail = function (options) {
         return next(new restify.ResourceNotFoundError(req.params.id));
       }
 
-      var projection = options.projection.bind(self, req);
-      res.send(200, projection(model));
-      next();
+      options.projection(req, model, function(err, model) {
+        if(err) {
+          return next(err);
+        }
+
+        res.send(model);
+        next();
+      });
     });
   };
 };
@@ -100,7 +115,7 @@ Resource.prototype.detail = function (options) {
 Resource.prototype.insert = function () {
   var self = this;
 
-  return function (req, res, next) {
+  return function(req, res, next) {
     self.Model.create(req.body, function (err, model) {
       if (err) {
         return onError(err, next);

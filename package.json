@@ -15,6 +15,7 @@
   ],
   "license": "BSD-2-Clause",
   "dependencies": {
+    "async": "0.2.x",
     "restify": "~2.6.1",
     "mongoose": "~3.8.3"
   },
