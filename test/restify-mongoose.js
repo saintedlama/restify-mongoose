@@ -178,6 +178,7 @@ describe('restify-mongoose', function () {
         .send({ title: 'Buy a ukulele' })
         .expect('Content-Type', /json/)
         .expect(400)
+        .expect(/Validation failed/)
         .end(done);
     });
   });
