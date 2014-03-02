@@ -12,6 +12,21 @@ var onError = function(err, next) {
   return next(new restify.InvalidContentError('Validation failed' + err.errors));
 };
 
+
+var emitEvent = function(self, event) {
+  return function(model, cb) {
+    self.emit(event, model);
+    cb();
+  }
+};
+
+var sendData = function(res) {
+  return function(model, cb) {
+    res.send(model);
+    cb(undefined, model);
+  }
+};
+
 var Resource = function (Model, options) {
   EventEmitter.call(this);
   this.Model = Model;
@@ -74,10 +89,8 @@ Resource.prototype.query = function (options) {
 
         async.map(models, iterator, cb);
       },
-      function sendDatas(model, cb) {
-        res.send(model);
-        cb();
-      }
+      sendData(res),
+      emitEvent(self, 'query')
     ], next);
   };
 };
@@ -105,16 +118,15 @@ Resource.prototype.detail = function (options) {
 
         options.projection(req, model, cb);
       },
-      function sendDatas(model, cb) {
-        res.send(model);
-        cb();
-      }
+      sendData(res),
+      emitEvent(self, 'detail')
     ], next);
   };
 };
 
 Resource.prototype.insert = function () {
   var self = this;
+  var emitInsert = emitEvent(self, 'insert');
 
   return function(req, res, next) {
     self.Model.create(req.body, function (err, model) {
@@ -124,13 +136,15 @@ Resource.prototype.insert = function () {
 
       res.header('Location', req.url + '/' + model._id);
       res.send(200, model);
-      next();
+
+      emitInsert(model, next);
     });
   };
 };
 
 Resource.prototype.update = function () {
   var self = this;
+  var emitUpdate = emitEvent(self, 'update');
 
   return function (req, res, next) {
     var query = self.Model.findOne({ _id: req.params.id});
@@ -160,6 +174,7 @@ Resource.prototype.update = function () {
         }
 
         res.send(200, model);
+        emitUpdate(model, next);
       });
     });
   };
@@ -167,6 +182,7 @@ Resource.prototype.update = function () {
 
 Resource.prototype.remove = function () {
   var self = this;
+  var emitRemove = emitEvent(self, 'remove');
 
   return function (req, res, next) {
     var query = self.Model.findOne({ _id: req.params.id});
@@ -190,6 +206,7 @@ Resource.prototype.remove = function () {
         }
 
         res.send(200, model);
+        emitRemove(model, next);
       });
     });
   };

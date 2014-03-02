@@ -15,6 +15,12 @@ var resetOptions = function() {
   for(key in server.globalOptions) {
     delete server.globalOptions[key];
   }
+
+  var events = ['query', 'detail', 'insert', 'remove', 'update'];
+
+  events.forEach(function(event) {
+    server.notes.removeAllListeners(event);
+  });
 };
 
 describe('restify-mongoose', function () {
@@ -105,6 +111,25 @@ describe('restify-mongoose', function () {
         })
         .end(done);
     });
+
+    it('should emit event after querying notes', function (done) {
+      var eventEmitted;
+      var eventArg;
+      server.notes.on('query', function(model) {
+        eventEmitted = true;
+        eventArg = model;
+      });
+
+      request(server)
+        .get('/notes')
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function(res) {
+          eventEmitted.should.be.ok;
+          eventArg.should.be.ok;
+        })
+        .end(done);
+    });
   });
 
   describe('detail', function () {
@@ -154,6 +179,31 @@ describe('restify-mongoose', function () {
           .end(done);
       });
     });
+
+    it('should emit event after selecting a note detail', function (done) {
+      Note.create({ title: 'detailtitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        var eventEmitted;
+        var eventArg;
+        server.notes.on('detail', function(model) {
+          eventEmitted = true;
+          eventArg = model;
+        });
+
+        request(server)
+          .get('/notes/' + note.id)
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(function(res) {
+            eventEmitted.should.be.ok;
+            eventArg.should.be.ok;
+          })
+          .end(done);
+      });
+    });
   });
 
   describe('new', function () {
@@ -179,6 +229,26 @@ describe('restify-mongoose', function () {
         .expect('Content-Type', /json/)
         .expect(400)
         .expect(/Validation failed/)
+        .end(done);
+    });
+
+    it('should emit event after inserting a note', function (done) {
+      var eventEmitted;
+      var eventArg;
+      server.notes.on('insert', function(model) {
+        eventEmitted = true;
+        eventArg = model;
+      });
+
+      request(server)
+        .post('/notes')
+        .send({ title: 'Buy a ukulele', date: new Date() })
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function() {
+          eventEmitted.should.be.ok;
+          eventArg.should.be.ok;
+        })
         .end(done);
     });
   });
@@ -245,6 +315,32 @@ describe('restify-mongoose', function () {
           .end(done);
       });
     });
+
+    it('should emit event after updating a note', function (done) {
+      Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        var eventEmitted;
+        var eventArg;
+        server.notes.on('update', function(model) {
+          eventEmitted = true;
+          eventArg = model;
+        });
+
+        request(server)
+          .patch('/notes/' + note.id)
+          .send({ title: 'Buy a ukulele' })
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(function() {
+            eventEmitted.should.be.ok;
+            eventArg.should.be.ok;
+          })
+          .end(done);
+      });
+    });
   });
 
   describe('delete', function () {
@@ -290,6 +386,31 @@ describe('restify-mongoose', function () {
         request(server)
           .del('/notes/' + note.id)
           .expect(404)
+          .end(done);
+      });
+    });
+
+    it('should emit event after deleting a note', function (done) {
+      Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        var eventEmitted;
+        var eventArg;
+        server.notes.on('remove', function(model) {
+          eventEmitted = true;
+          eventArg = model;
+        });
+
+        request(server)
+          .del('/notes/' + note.id)
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(function() {
+            eventEmitted.should.be.ok;
+            eventArg.should.be.ok;
+          })
           .end(done);
       });
     });
