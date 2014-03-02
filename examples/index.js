@@ -1,3 +1,5 @@
+'use strict';
+
 var restify = require('restify');
 var mongoose = require('mongoose');
 var restifyMongoose = require('../index.js');
@@ -6,8 +8,8 @@ var models = require('./models');
 mongoose.connect('mongodb://localhost/restify-mongoose-examples');
 
 var server = restify.createServer({
-    name: 'restify.mongoose.examples.notes',
-    version: '1.0.0'
+  name: 'restify.mongoose.examples.notes',
+  version: '1.0.0'
 });
 
 server.use(restify.acceptParser(server.acceptable));
@@ -30,5 +32,5 @@ server.del('/notes/:id', notes.remove());
 restifyMongoose(models.Note).serve('/api/notes', server);
 
 server.listen(3000, function () {
-    console.log('%s listening at %s. Point your browser to "%s/public/index.html" to see the angular UI in action!', server.name, server.url, server.url);
+  console.log('%s listening at %s. Point your browser to "%s/public/index.html" to see the angular UI in action!', server.name, server.url, server.url);
 });
