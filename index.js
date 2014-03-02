@@ -15,7 +15,10 @@ var onError = function(err, next) {
 var emitEvent = function(self, event) {
   return function(model, cb) {
     self.emit(event, model);
-    cb(undefined, model);
+
+    if (cb) {
+      cb(undefined, model);
+    }
   }
 };
 
