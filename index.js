@@ -12,7 +12,6 @@ var onError = function(err, next) {
   return next(new restify.InvalidContentError('Validation failed' + err.errors));
 };
 
-
 var emitEvent = function(self, event) {
   return function(model, cb) {
     self.emit(event, model);
@@ -24,6 +23,32 @@ var sendData = function(res) {
   return function(model, cb) {
     res.send(model);
     cb(undefined, model);
+  }
+};
+
+var execQuery = function(query) {
+  return function(cb) {
+    query.exec(cb);
+  }
+};
+
+var buildProjections = function(req, projection) {
+  return function(models, cb) {
+    var iterator = function (model, cb) {
+      projection(req, model, cb);
+    };
+
+    async.map(models, iterator, cb);
+  }
+};
+
+var buildProjection = function(req, projection) {
+  return function(model, cb) {
+    if (!model) {
+      return cb(new restify.ResourceNotFoundError(req.params.id));
+    }
+
+    projection(req, model, cb);
   }
 };
 
@@ -79,16 +104,8 @@ Resource.prototype.query = function (options) {
     query.limit(options.pageSize);
 
     async.waterfall([
-      function retrieveModels(cb) {
-        query.exec(cb);
-      },
-      function buildProjections(models, cb) {
-        var iterator = function(model, cb) {
-          options.projection(req, model, cb);
-        };
-
-        async.map(models, iterator, cb);
-      },
+      execQuery(query),
+      buildProjections(req, options.projection),
       sendData(res),
       emitEvent(self, 'query')
     ], next);
@@ -108,16 +125,8 @@ Resource.prototype.detail = function (options) {
     }
 
     async.waterfall([
-      function retrieveModel(cb) {
-        query.exec(cb);
-      },
-      function buildProjection(model, cb) {
-        if (!model) {
-          return cb(new restify.ResourceNotFoundError(req.params.id));
-        }
-
-        options.projection(req, model, cb);
-      },
+      execQuery(query),
+      buildProjection(req, options.projection),
       sendData(res),
       emitEvent(self, 'detail')
     ], next);
