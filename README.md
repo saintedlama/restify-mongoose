@@ -1,5 +1,5 @@
 # Restify-Mongoose
-[![Build Status](https://travis-ci.org/Papiel/restify-mongoose.png?branch=master)](https://travis-ci.org/Papiel/restify-mongoose)
+[![Build Status](https://travis-ci.org/saintedlama/restify-mongoose.png?branch=master)](https://travis-ci.org/saintedlama/restify-mongoose)
 [![Coverage Status](https://coveralls.io/repos/Papiel/restify-mongoose/badge.png)](https://coveralls.io/r/Papiel/restify-mongoose)
 
 Restify-Mongoose provides a resource abstraction for [restify](http://mcavage.me/node-restify/) to expose mongoose models as REST resources.
