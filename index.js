@@ -1,9 +1,8 @@
 'use strict';
-var util = require('util');
-var EventEmitter = require('events').EventEmitter;
-
 var async = require('async');
 var restify = require('restify');
+var util = require('util');
+var EventEmitter = require('events').EventEmitter;
 
 var onError = function(err, next) {
   if ('ValidationError' !== err.name) {
