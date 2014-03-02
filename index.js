@@ -1,18 +1,14 @@
 'use strict';
 
-var util = require('util');
+var async = require('async');
 var restify = require('restify');
 
-var notFound = function (res, id) {
-  res.send(404, { error: util.format('Could not find resource with id \'%s\'', id) });
-};
-
-var notValid = function (res, next, err) {
+var onError = function(err, next) {
   if ('ValidationError' !== err.name) {
     return next(err);
   }
 
-  return res.send(400, { message: 'Validation failed', errors: err.errors });
+  return next(new restify.InvalidContentError('Validation failed' + err.errors));
 };
 
 var Resource = function (Model, options) {
@@ -20,11 +16,11 @@ var Resource = function (Model, options) {
 
   this.options = options || {};
   this.options.pageSize = this.options.pageSize || 100;
-  this.options.listProjection = this.options.listProjection || function (req, item) {
-    return item;
+  this.options.listProjection = this.options.listProjection || function (req, item, cb) {
+    cb(null, item);
   };
-  this.options.detailProjection = this.options.detailProjection || function (req, item) {
-    return item;
+  this.options.detailProjection = this.options.detailProjection || function (req, item, cb) {
+    cb(null, item);
   };
 };
 
@@ -63,14 +59,22 @@ Resource.prototype.query = function (options) {
     query.skip(options.pageSize * page);
     query.limit(options.pageSize);
 
-    query.exec(function (err, models) {
-      if (err) {
-        return next(err);
-      }
+    async.waterfall([
+      function retrieveModels(cb) {
+        query.exec(cb);
+      },
+      function buildProjections(models, cb) {
+        var iterator = function(model, cb) {
+          options.projection(req, model, cb);
+        };
 
-      var projection = options.projection.bind(self, req);
-      res.send(200, models.map(projection));
-    });
+        async.map(models, iterator, cb);
+      },
+      function sendDatas(model, cb) {
+        res.send(model);
+        cb();
+      }
+    ], next);
   };
 };
 
@@ -86,29 +90,32 @@ Resource.prototype.detail = function (options) {
       query = query.where(self.options.filter(req, res));
     }
 
-    query.exec(function (err, model) {
-      if (err) {
-        return next(err);
-      }
+    async.waterfall([
+      function retrieveModel(cb) {
+        query.exec(cb);
+      },
+      function buildProjection(model, cb) {
+        if (!model) {
+          return cb(new restify.ResourceNotFoundError(req.params.id));
+        }
 
-      if (!model) {
-        return notFound(res, req.params.id);
+        options.projection(req, model, cb);
+      },
+      function sendDatas(model, cb) {
+        res.send(model);
+        cb();
       }
-
-      var projection = options.projection.bind(self, req);
-      res.send(200, projection(model));
-      next();
-    });
+    ], next);
   };
 };
 
 Resource.prototype.insert = function () {
   var self = this;
 
-  return function (req, res, next) {
+  return function(req, res, next) {
     self.Model.create(req.body, function (err, model) {
       if (err) {
-        return notValid(res, next, err);
+        return onError(err, next);
       }
 
       res.header('Location', req.url + '/' + model._id);
@@ -134,19 +141,18 @@ Resource.prototype.update = function () {
       }
 
       if (!model) {
-        return notFound(res, req.params.id);
+        return next(new restify.ResourceNotFoundError(req.params.id));
       }
 
       if (!req.body) {
-        // TODO: Rework notValid method to allow this err be treated by restify
-        return notValid(res, next, new restify.InvalidContentError('No update data sent'));
+        return next(new restify.InvalidContentError('No update data sent'));
       }
 
       model.set(req.body);
 
       model.save(function (err) {
         if (err) {
-          return notValid(res, next, err);
+          return onError(err, next);
         }
 
         res.send(200, model);
@@ -171,7 +177,7 @@ Resource.prototype.remove = function () {
       }
 
       if (!model) {
-        return notFound(res, req.params.id);
+        return next(new restify.ResourceNotFoundError(req.params.id));
       }
 
       model.remove(function (err) {
@@ -186,7 +192,7 @@ Resource.prototype.remove = function () {
 };
 
 Resource.prototype.serve = function (path, server) {
-  var closedPath = path[path.length - 1] == '/' ? path : path + '/';
+  var closedPath = path[path.length - 1] === '/' ? path : path + '/';
 
   server.get(path, this.query());
   server.get(closedPath + ':id', this.detail());
