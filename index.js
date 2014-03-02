@@ -15,7 +15,7 @@ var onError = function(err, next) {
 var emitEvent = function(self, event) {
   return function(model, cb) {
     self.emit(event, model);
-    cb();
+    cb(undefined, model);
   }
 };
 
@@ -106,8 +106,8 @@ Resource.prototype.query = function (options) {
     async.waterfall([
       execQuery(query),
       buildProjections(req, options.projection),
-      sendData(res),
-      emitEvent(self, 'query')
+      emitEvent(self, 'query'),
+      sendData(res)
     ], next);
   };
 };
@@ -127,8 +127,8 @@ Resource.prototype.detail = function (options) {
     async.waterfall([
       execQuery(query),
       buildProjection(req, options.projection),
-      sendData(res),
-      emitEvent(self, 'detail')
+      emitEvent(self, 'detail'),
+      sendData(res)
     ], next);
   };
 };
