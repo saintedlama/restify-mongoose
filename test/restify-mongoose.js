@@ -3,12 +3,20 @@ require("should");
 
 var request = require('supertest');
 var mongoose = require('mongoose');
-
+var restifyMongoose = require('../index');
 var server = require('./server');
 var Note = require('./note');
 var mongoTest = require('./util/mongotest');
 
 describe('restify-mongoose', function () {
+  describe('constructor', function () {
+    it('should throw if no model is given', function(){
+      (function() {
+        restifyMongoose();
+      }).should.throw(/Model argument/);
+    });
+  });
+
   describe('query', function () {
     before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
     before(mongoTest.populate(Note,
