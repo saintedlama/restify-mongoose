@@ -8,25 +8,7 @@ var server = require('./server');
 var Note = require('./note');
 var mongoTest = require('./util/mongotest');
 
-var resetOptions = function() {
-  // Reset globalOptions,
-  // We can't override them with {} since we'd lose closure references in the lib.
-  var key;
-  for(key in server.globalOptions) {
-    delete server.globalOptions[key];
-  }
-
-  var events = ['query', 'detail', 'insert', 'remove', 'update'];
-
-  events.forEach(function(event) {
-    server.notes.removeAllListeners(event);
-  });
-};
-
 describe('restify-mongoose', function () {
-  beforeEach(resetOptions);
-  afterEach(resetOptions);
-
   describe('query', function () {
     before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
     before(mongoTest.populate(Note,
@@ -38,7 +20,7 @@ describe('restify-mongoose', function () {
     after(mongoTest.disconnect());
 
     it('should return all notes', function (done) {
-      request(server)
+      request(server())
         .get('/notes')
         .expect('Content-Type', /json/)
         .expect(200)
@@ -49,7 +31,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should filter notes according to query', function (done) {
-      request(server)
+      request(server())
         .get('/notes?q={"title":"first"}')
         .expect('Content-Type', /json/)
         .expect(200)
@@ -61,7 +43,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should fail on invalid query', function (done) {
-      request(server)
+      request(server())
         .get('/notes?q={title"first"}')
         .expect('Content-Type', /json/)
         .expect(400)
@@ -69,13 +51,13 @@ describe('restify-mongoose', function () {
     });
 
     it('should filter notes according to options', function (done) {
-      var filter = function() {
-        return {"title":"second"};
-      };
+      var svr = server({
+        filter : function() {
+          return {"title":"second"};
+        }
+      });
 
-      server.globalOptions.filter = filter;
-
-      request(server)
+      request(svr)
         .get('/notes')
         .expect('Content-Type', /json/)
         .expect(200)
@@ -87,7 +69,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should sort notes', function (done) {
-      request(server)
+      request(server())
         .get('/notes?sort=-title')
         .expect('Content-Type', /json/)
         .expect(200)
@@ -100,7 +82,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should select fields of notes', function (done) {
-      request(server)
+      request(server())
         .get('/notes?select=date')
         .expect('Content-Type', /json/)
         .expect(200)
@@ -113,14 +95,16 @@ describe('restify-mongoose', function () {
     });
 
     it('should emit event after querying notes', function (done) {
+      var svr = server();
+
       var eventEmitted;
       var eventArg;
-      server.notes.on('query', function(model) {
+      svr.notes.on('query', function(model) {
         eventEmitted = true;
         eventArg = model;
       });
 
-      request(server)
+      request(svr)
         .get('/notes')
         .expect('Content-Type', /json/)
         .expect(200)
@@ -142,7 +126,7 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        request(server)
+        request(server())
           .get('/notes/' + note.id)
           .expect('Content-Type', /json/)
           .expect(200)
@@ -156,7 +140,7 @@ describe('restify-mongoose', function () {
     it('should respond with 404 if not found', function (done) {
       var id = new mongoose.Types.ObjectId();
 
-      request(server)
+      request(server())
         .get('/notes/' + id.toString())
         .expect('Content-Type', /json/)
         .expect(404)
@@ -169,11 +153,11 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var filter = function() {
+        var svr = server({ filter : function() {
           return {"title":"doesNotExists"};
-        };
-        server.globalOptions.filter = filter;
-        request(server)
+        }});
+
+        request(svr)
           .get('/notes/' + note.id)
           .expect(404)
           .end(done);
@@ -186,14 +170,16 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
+        var svr = server();
+
         var eventEmitted;
         var eventArg;
-        server.notes.on('detail', function(model) {
+        svr.notes.on('detail', function(model) {
           eventEmitted = true;
           eventArg = model;
         });
 
-        request(server)
+        request(svr)
           .get('/notes/' + note.id)
           .expect('Content-Type', /json/)
           .expect(200)
@@ -206,12 +192,12 @@ describe('restify-mongoose', function () {
     });
   });
 
-  describe('new', function () {
+  describe('insert', function () {
     before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
     after(mongoTest.disconnect());
 
     it('should create note', function (done) {
-      request(server)
+      request(server())
         .post('/notes')
         .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
@@ -223,7 +209,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should respond with 400 if not valid', function (done) {
-      request(server)
+      request(server())
         .post('/notes')
         .send({ title: 'Buy a ukulele' })
         .expect('Content-Type', /json/)
@@ -233,14 +219,16 @@ describe('restify-mongoose', function () {
     });
 
     it('should emit event after inserting a note', function (done) {
+      var svr = server();
+
       var eventEmitted;
       var eventArg;
-      server.notes.on('insert', function(model) {
+      svr.notes.on('insert', function(model) {
         eventEmitted = true;
         eventArg = model;
       });
 
-      request(server)
+      request(svr)
         .post('/notes')
         .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
@@ -263,7 +251,7 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        request(server)
+        request(server())
           .patch('/notes/' + note.id)
           .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
@@ -278,7 +266,7 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        request(server)
+        request(server())
           .patch('/notes/' + note.id)
           .send()
           .expect(400)
@@ -289,7 +277,7 @@ describe('restify-mongoose', function () {
     it('should respond with 404 if not found', function (done) {
       var id = new mongoose.Types.ObjectId();
 
-      request(server)
+      request(server())
         .patch('/notes/' + id.toString())
         .send({ title: 'Buy a guitar'})
         .expect('Content-Type', /json/)
@@ -303,12 +291,11 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var filter = function() {
+        var svr = server({ filter : function() {
           return {"title":"doesNotExists"};
-        };
-        server.globalOptions.filter = filter;
+        }});
 
-        request(server)
+        request(svr)
           .patch('/notes/' + note.id)
           .send({ title: 'Buy a ukulele' })
           .expect(404)
@@ -322,14 +309,16 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
+        var svr = server();
+
         var eventEmitted;
         var eventArg;
-        server.notes.on('update', function(model) {
+        svr.notes.on('update', function(model) {
           eventEmitted = true;
           eventArg = model;
         });
 
-        request(server)
+        request(svr)
           .patch('/notes/' + note.id)
           .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
@@ -353,7 +342,7 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        request(server)
+        request(server())
           .del('/notes/' + note.id)
           .expect('Content-Type', /json/)
           .expect(200)
@@ -364,7 +353,7 @@ describe('restify-mongoose', function () {
     it('should respond with 404 if not found', function (done) {
       var id = new mongoose.Types.ObjectId();
 
-      request(server)
+      request(server())
         .del('/notes/' + id.toString())
         .send({ title: 'Buy a guitar'})
         .expect('Content-Type', /json/)
@@ -378,12 +367,13 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var filter = function() {
-          return {"title":"doesNotExists"};
-        };
-        server.globalOptions.filter = filter;
+        var svr = server({
+          filter : function() {
+            return {"title":"doesNotExists"};
+          }
+        });
 
-        request(server)
+        request(svr)
           .del('/notes/' + note.id)
           .expect(404)
           .end(done);
@@ -396,14 +386,16 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
+        var svr = server();
+
         var eventEmitted;
         var eventArg;
-        server.notes.on('remove', function(model) {
+        svr.notes.on('remove', function(model) {
           eventEmitted = true;
           eventArg = model;
         });
 
-        request(server)
+        request(svr)
           .del('/notes/' + note.id)
           .expect('Content-Type', /json/)
           .expect(200)
@@ -411,6 +403,101 @@ describe('restify-mongoose', function () {
             eventEmitted.should.be.ok;
             eventArg.should.be.ok;
           })
+          .end(done);
+      });
+    });
+  });
+
+  describe('serve', function () {
+    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    after(mongoTest.disconnect());
+
+    it('should return query notes', function (done) {
+      Note.create({ title: 'some new note', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if (err) {
+          throw err;
+        }
+
+        var svr = server();
+        svr.notes.serve('/servenotes', svr);
+
+        request(svr)
+          .get('/servenotes')
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(function(res) {
+            res.body.should.have.lengthOf(1);
+          })
+          .end(done);
+      });
+    });
+
+    it('should select detail note', function (done) {
+      Note.create({ title: 'detailtitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        var svr = server();
+        svr.notes.serve('/servenotes', svr);
+
+        request(svr)
+          .get('/servenotes/' + note.id)
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(function(res) {
+            res.body.title.should.equal('detailtitle');
+          })
+          .end(done);
+      });
+    });
+
+    it('should create note', function (done) {
+      var svr = server();
+      svr.notes.serve('/servenotes', svr);
+
+      request(svr)
+        .post('/notes')
+        .send({ title: 'Buy a ukulele', date: new Date() })
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function(res) {
+          res.headers.should.have.property("location");
+        })
+        .end(done);
+    });
+
+    it('should update existing note', function (done) {
+      Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        var svr = server();
+        svr.notes.serve('/servenotes', svr);
+
+        request(svr)
+          .patch('/servenotes/' + note.id)
+          .send({ title: 'Buy a ukulele' })
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .end(done);
+      });
+    });
+
+    it('should delete existing note', function (done) {
+      Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        var svr = server();
+        svr.notes.serve('/servenotes', svr);
+
+        request(svr)
+          .del('/servenotes/' + note.id)
+          .expect('Content-Type', /json/)
+          .expect(200)
           .end(done);
       });
     });
