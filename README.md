@@ -115,3 +115,18 @@ Select fields are passed directly to [mongoose select query function](http://mon
 To select only date the field of a notes resource append the __select__ query parameter to the URL:
 
     http://localhost:3000/notes?select=date
+    
+## Filter
+Results can be filtered with a function, which is set in the options object of the constructor or on the `query` and `detail` function.
+
+The function takes two parameters: the request object and the response object. The return value of the function is a query that is passed directly to the [mongoose where query function](http://mongoosejs.com/docs/api.html#query_Query-where).
+
+For instance, you can use a filter to display only results for a particular user: 
+
+```
+var filterUser = function(req, res) {
+  return {user: req.user};
+}
+
+var notes = restifyMongoose(Note, {filter: filterUser});
+```
