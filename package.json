@@ -5,7 +5,8 @@
   "author": "christoph.walcher@gmail.com",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_ENV=test mocha -R spec test/"
+    "test": "NODE_ENV=test mocha -R spec test/",
+    "cover": "NODE_ENV=test istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec" 
   },
   "keywords": [
     "restify",
