@@ -39,6 +39,24 @@ var execQuery = function(query) {
   }
 };
 
+var execSave = function (model) {
+  return function(cb) {
+    model.save(function(err, model) {
+      if (err)
+        return cb(restifyError(err));
+      else
+        cb(null, model);
+    });
+  };
+};
+
+var setLocationHeader = function (req, res) {
+  return function(model, cb) {
+    res.header('Location', req.url + '/' + model._id);
+    cb(null, model);
+  };
+}
+
 var buildProjections = function(req, projection) {
   return function(models, cb) {
     var iterator = function (model, cb) {
@@ -142,19 +160,16 @@ Resource.prototype.detail = function (options) {
 
 Resource.prototype.insert = function () {
   var self = this;
-  var emitInsert = emitEvent(self, 'insert');
 
   return function(req, res, next) {
-    self.Model.create(req.body, function (err, model) {
-      if (err) {
-        return onError(err, next);
-      }
-
-      res.header('Location', req.url + '/' + model._id);
-      res.send(200, model);
-
-      emitInsert(model, next);
-    });
+    var model = new self.Model(req.body);
+    async.waterfall([
+      execSave(model),
+      setLocationHeader(req, res),
+      emitEvent(self, 'insert'),
+      sendData(res)
+    ], next);
+    
   };
 };
 
