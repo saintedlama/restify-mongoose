@@ -4,12 +4,16 @@ var restify = require('restify');
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 
-var onError = function(err, next) {
+var restifyError = function(err) {
   if ('ValidationError' !== err.name) {
-    return next(err);
+    return err;
   }
 
-  return next(new restify.InvalidContentError('Validation failed' + err.errors));
+  return new restify.InvalidContentError('Validation failed' + err.errors);
+};
+
+var onError = function(err, next) {
+  return next(restifyError(err));
 };
 
 var emitEvent = function(self, event) {
