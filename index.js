@@ -169,13 +169,11 @@ Resource.prototype.insert = function () {
       emitEvent(self, 'insert'),
       sendData(res)
     ], next);
-    
   };
 };
 
 Resource.prototype.update = function () {
   var self = this;
-  var emitUpdate = emitEvent(self, 'update');
 
   return function (req, res, next) {
     var query = self.Model.findOne({ _id: req.params.id});
@@ -198,15 +196,13 @@ Resource.prototype.update = function () {
       }
 
       model.set(req.body);
-
-      model.save(function (err) {
-        if (err) {
-          return onError(err, next);
-        }
-
-        res.send(200, model);
-        emitUpdate(model, next);
-      });
+      
+      async.waterfall([
+        execSave(model),
+        setLocationHeader(req, res),
+        emitEvent(self, 'update'),
+        sendData(res)
+      ], next);
     });
   };
 };
