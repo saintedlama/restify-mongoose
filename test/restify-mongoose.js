@@ -518,7 +518,7 @@ describe('restify-mongoose', function () {
       svr.notes.serve('/servenotes', svr);
 
       request(svr)
-        .post('/notes')
+        .post('/servenotes')
         .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(200)
