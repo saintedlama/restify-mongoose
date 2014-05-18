@@ -140,3 +140,4 @@ var notes = restifyMongoose(Note, {filter: filterUser});
 * Added coverage script to package.json
 * The insert and update operations now use aync.waterfall
 * The server test helper has an optional parameter which will set or not set default routes 
+* Updates to restify 2.8.x
