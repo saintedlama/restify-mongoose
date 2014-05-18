@@ -66,7 +66,7 @@ var setLocationHeader = function (req, res) {
     res.header('Location', req.url + '/' + model._id);
     cb(null, model);
   };
-}
+};
 
 var buildProjections = function(req, projection) {
   return function(models, cb) {
