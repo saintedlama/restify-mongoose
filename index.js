@@ -9,7 +9,10 @@ var restifyError = function(err) {
     return err;
   }
 
-  return new restify.InvalidContentError('Validation failed' + err.errors);
+  return new restify.InvalidContentError({ body : {
+    message : 'Validation failed',
+    errors : err.errors
+  }});
 };
 
 var emitEvent = function(self, event) {

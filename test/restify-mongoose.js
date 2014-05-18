@@ -679,4 +679,46 @@ describe('restify-mongoose', function () {
         .end(done);
     });
   });
+
+  describe('errors', function () {
+    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    after(mongoTest.disconnect());
+
+    it('should serve mongoose validation errors as errors property in body for create', function(done) {
+      request(server())
+        .post('/notes')
+        .send({ })
+        .expect('Content-Type', /json/)
+        .expect(400)
+        .expect(function(res) {
+          res.body.message.should.exist;
+          res.body.errors.should.exist;
+          res.body.errors.date.should.exist;
+          res.body.errors.title.should.exist;
+        })
+        .end(done);
+    });
+
+    it('should serve mongoose validation errors as errors property in body for update', function (done) {
+      Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+        var svr = server(false);
+        svr.notes.serve('/servenotes', svr);
+
+        request(svr)
+          .patch('/servenotes/' + note.id)
+          .send({ title: '', date: new Date() })
+          .expect('Content-Type', /json/)
+          .expect(400)
+          .expect(function(res) {
+            res.body.message.should.exist;
+            res.body.errors.should.exist;
+            res.body.errors.title.should.exist;
+          })
+          .end(done);
+      });
+    });
+  });
 });
