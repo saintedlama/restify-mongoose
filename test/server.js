@@ -2,7 +2,13 @@ var restify = require('restify');
 var restifyMongoose = require('../index');
 var Note = require('./note');
 
-module.exports = function(options) {
+module.exports = function(options, routes) {
+  if (routes === undefined) {
+    routes = true;
+  }
+  if (typeof options === 'boolean') {
+    routes = options;
+  }
   var server = restify.createServer({
     name: 'restify.mongoose.examples.notes',
     version: '1.0.0'
@@ -15,12 +21,13 @@ module.exports = function(options) {
   var notes = restifyMongoose(Note, options);
 
   // Serve model Notes as a REST API
-
-  server.get('/notes', notes.query());
-  server.get('/notes/:id', notes.detail());
-  server.post('/notes', notes.insert());
-  server.patch('/notes/:id', notes.update());
-  server.del('/notes/:id', notes.remove());
+  if (routes) {
+    server.get('/notes', notes.query());
+    server.get('/notes/:id', notes.detail());
+    server.post('/notes', notes.insert());
+    server.patch('/notes/:id', notes.update());
+    server.del('/notes/:id', notes.remove());
+  }
 
   server.notes = notes;
 
