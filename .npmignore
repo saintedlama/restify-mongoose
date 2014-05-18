@@ -3,6 +3,8 @@ coverage
 examples
 .idea
 .gitattributes
+.editorconfig
+.jshintrc
 *.tgz
 *~
 .travis.yml
