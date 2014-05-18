@@ -5,7 +5,7 @@ noteControllers.config(['$httpProvider', function($httpProvider) {
     }
 }]);
 
-noteControllers.constant('serviceUrl', 'http://localhost:3000/notes');
+noteControllers.constant('serviceUrl', '/notes');
 noteControllers.directive('ngError', function() {
     return {
         restrict: 'E',
