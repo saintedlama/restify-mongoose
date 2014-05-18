@@ -4,12 +4,16 @@ var restify = require('restify');
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 
-var onError = function(err, next) {
+var restifyError = function(err) {
   if ('ValidationError' !== err.name) {
-    return next(err);
+    return err;
   }
 
-  return next(new restify.InvalidContentError('Validation failed' + err.errors));
+  return new restify.InvalidContentError('Validation failed' + err.errors);
+};
+
+var onError = function(err, next) {
+  return next(restifyError(err));
 };
 
 var emitEvent = function(self, event) {
@@ -34,6 +38,35 @@ var execQuery = function(query) {
     query.exec(cb);
   }
 };
+
+var execBeforeSave = function(req, model, beforeSave) {
+  if (!beforeSave) {
+    beforeSave = function(req, model, cb) {
+      cb();
+    };
+  }
+  return function(cb) {
+    beforeSave(req, model, cb);
+  };
+};
+
+var execSave = function (model) {
+  return function(cb) {
+    model.save(function(err, model) {
+      if (err)
+        return cb(restifyError(err));
+      else
+        cb(null, model);
+    });
+  };
+};
+
+var setLocationHeader = function (req, res) {
+  return function(model, cb) {
+    res.header('Location', req.url + '/' + model._id);
+    cb(null, model);
+  };
+}
 
 var buildProjections = function(req, projection) {
   return function(models, cb) {
@@ -136,27 +169,27 @@ Resource.prototype.detail = function (options) {
   };
 };
 
-Resource.prototype.insert = function () {
+Resource.prototype.insert = function (options) {
   var self = this;
-  var emitInsert = emitEvent(self, 'insert');
+
+  options = options || {};
 
   return function(req, res, next) {
-    self.Model.create(req.body, function (err, model) {
-      if (err) {
-        return onError(err, next);
-      }
-
-      res.header('Location', req.url + '/' + model._id);
-      res.send(200, model);
-
-      emitInsert(model, next);
-    });
+    var model = new self.Model(req.body);
+    async.waterfall([
+      execBeforeSave(req, model, options.beforeSave),
+      execSave(model),
+      setLocationHeader(req, res),
+      emitEvent(self, 'insert'),
+      sendData(res)
+    ], next);
   };
 };
 
-Resource.prototype.update = function () {
+Resource.prototype.update = function (options) {
   var self = this;
-  var emitUpdate = emitEvent(self, 'update');
+
+  options = options || {};
 
   return function (req, res, next) {
     var query = self.Model.findOne({ _id: req.params.id});
@@ -179,15 +212,14 @@ Resource.prototype.update = function () {
       }
 
       model.set(req.body);
-
-      model.save(function (err) {
-        if (err) {
-          return onError(err, next);
-        }
-
-        res.send(200, model);
-        emitUpdate(model, next);
-      });
+      
+      async.waterfall([
+        execBeforeSave(req, model, options.beforeSave),
+        execSave(model),
+        setLocationHeader(req, res),
+        emitEvent(self, 'update'),
+        sendData(res)
+      ], next);
     });
   };
 };
@@ -224,14 +256,47 @@ Resource.prototype.remove = function () {
   };
 };
 
-Resource.prototype.serve = function (path, server) {
+Resource.prototype.serve = function (path, server, options) {
+
+  options = options || {};
+
+  var handlerChain = function handlerChain(handler, before, after) {
+    if (options && (before || after)) {
+      var handlers = [];
+      if (before) {
+        handlers = handlers.concat(before);
+      }
+      handlers.push(handler);
+      if (after) {
+        handlers = handlers.concat(after);
+      }
+      return handlers;
+    } else {
+      return handler;
+    }
+  };
   var closedPath = path[path.length - 1] === '/' ? path : path + '/';
 
-  server.get(path, this.query());
-  server.get(closedPath + ':id', this.detail());
-  server.post(path, this.insert());
-  server.del(closedPath + ':id', this.remove());
-  server.patch(closedPath + ':id', this.update());
+  server.get(
+    path, 
+    handlerChain(this.query(), options.before, options.after)
+  );
+  server.get(
+    closedPath + ':id', 
+    handlerChain(this.detail(), options.before, options.after)
+  );
+  server.post(
+    path, 
+    handlerChain(this.insert(), options.before, options.after)
+  );
+  server.del(
+    closedPath + ':id', 
+    handlerChain(this.remove(), options.before, options.after)
+  );
+  server.patch(
+    closedPath + ':id', 
+    handlerChain(this.update(), options.before, options.after)
+  );
 };
 
 module.exports = function (Model, options) {
