@@ -13,7 +13,7 @@ Second step is to wire up mongoose and restify using restify-mongoose
 
 ```javascript
 var restify = require('restify');
-var restifyMongoose = require('../index');
+var restifyMongoose = require('restify-mongoose');
 var mongoose = require('mongoose');
 
 var server = restify.createServer({
