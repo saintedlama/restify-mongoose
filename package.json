@@ -3,6 +3,15 @@
   "version": "0.2.0",
   "description": "Expose mongoose models as REST resources",
   "author": "christoph.walcher@gmail.com",
+  "contributors": [{
+    "name": "Matthieu Bacconnier",
+    "email": "neamar@neamar.fr",
+    "url": "http://blog.neamar.fr"
+  }, {
+    "name": "Dave Jensen",
+    "email": "david@jensen47.com",
+    "url": "http://build47.com"
+  }],
   "main": "index.js",
   "scripts": {
     "test": "NODE_ENV=test mocha -R spec test/",
