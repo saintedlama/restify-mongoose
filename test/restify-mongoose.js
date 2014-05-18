@@ -630,5 +630,53 @@ describe('restify-mongoose', function () {
         })
         .end(done);
     });
+
+    it('should allow to pass a single "before" middleware as non array', function (done) {
+      var beforeCalled = false;
+
+      var options = {
+        before : function(req, res, next) {
+          beforeCalled = true;
+          next();
+        }
+      };
+
+      var svr = server(false);
+      svr.notes.serve('/servenotes', svr, options);
+
+      request(svr)
+        .post('/servenotes')
+        .send({ title: 'Buy a ukulele', date: new Date() })
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function() {
+          beforeCalled.should.equal(true);
+        })
+        .end(done);
+    });
+
+    it('should allow to pass a single "after" middleware as non array', function (done) {
+      var afterCalled = false;
+
+      var options = {
+        after : function(req, res, next) {
+          afterCalled = true;
+          next();
+        }
+      };
+
+      var svr = server(false);
+      svr.notes.serve('/servenotes', svr, options);
+
+      request(svr)
+        .post('/servenotes')
+        .send({ title: 'Buy a ukulele', date: new Date() })
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function() {
+          afterCalled.should.equal(true);
+        })
+        .end(done);
+    });
   });
 });
