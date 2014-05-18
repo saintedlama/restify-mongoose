@@ -3,19 +3,22 @@
   "version": "0.2.0",
   "description": "Expose mongoose models as REST resources",
   "author": "christoph.walcher@gmail.com",
-  "contributors": [{
-    "name": "Matthieu Bacconnier",
-    "email": "neamar@neamar.fr",
-    "url": "http://blog.neamar.fr"
-  }, {
-    "name": "Dave Jensen",
-    "email": "david@jensen47.com",
-    "url": "http://build47.com"
-  }],
+  "contributors": [
+    {
+      "name": "Matthieu Bacconnier",
+      "email": "neamar@neamar.fr",
+      "url": "http://blog.neamar.fr"
+    },
+    {
+      "name": "Dave Jensen",
+      "email": "david@jensen47.com",
+      "url": "http://build47.com"
+    }
+  ],
   "main": "index.js",
   "scripts": {
     "test": "NODE_ENV=test mocha -R spec test/",
-    "cover": "NODE_ENV=test istanbul cover ./node_modules/mocha/bin/_mocha --report lcov -- -R spec" 
+    "cover": "NODE_ENV=test istanbul cover ./node_modules/mocha/bin/_mocha --report lcov -- -R spec"
   },
   "keywords": [
     "restify",
@@ -25,18 +28,18 @@
   ],
   "license": "BSD-2-Clause",
   "dependencies": {
-    "async": "0.2.x",
-    "restify": "2.6.x",
-    "mongoose": "3.8.x"
+    "async": "~0.9.0",
+    "restify": "~2.8.1",
+    "mongoose": "~3.8.9"
   },
   "devDependencies": {
-    "mocha": "1.17.x",
-    "supertest": "0.9.x",
-    "should": "3.1.x"
+    "mocha": "~1.19.0",
+    "supertest": "~0.12.1",
+    "should": "~3.3.1"
   },
-  "bugs" : "https://github.com/saintedlama/restify-mongoose/issues",
-  "repository" : {
-    "type" : "git",
-    "url" : "https://github.com/saintedlama/restify-mongoose.git"
+  "bugs": "https://github.com/saintedlama/restify-mongoose/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/saintedlama/restify-mongoose.git"
   }
 }
