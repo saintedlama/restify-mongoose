@@ -12,10 +12,6 @@ var restifyError = function(err) {
   return new restify.InvalidContentError('Validation failed' + err.errors);
 };
 
-var onError = function(err, next) {
-  return next(restifyError(err));
-};
-
 var emitEvent = function(self, event) {
   return function(model, cb) {
     self.emit(event, model);
