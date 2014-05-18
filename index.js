@@ -39,6 +39,17 @@ var execQuery = function(query) {
   }
 };
 
+var execBeforeSave = function(req, model, beforeSave) {
+  if (!beforeSave) {
+    beforeSave = function(req, model, cb) {
+      cb();
+    };
+  }
+  return function(cb) {
+    beforeSave(req, model, cb);
+  };
+};
+
 var execSave = function (model) {
   return function(cb) {
     model.save(function(err, model) {
@@ -158,12 +169,15 @@ Resource.prototype.detail = function (options) {
   };
 };
 
-Resource.prototype.insert = function () {
+Resource.prototype.insert = function (options) {
   var self = this;
+
+  options = options || {};
 
   return function(req, res, next) {
     var model = new self.Model(req.body);
     async.waterfall([
+      execBeforeSave(req, model, options.beforeSave),
       execSave(model),
       setLocationHeader(req, res),
       emitEvent(self, 'insert'),
@@ -172,8 +186,10 @@ Resource.prototype.insert = function () {
   };
 };
 
-Resource.prototype.update = function () {
+Resource.prototype.update = function (options) {
   var self = this;
+
+  options = options || {};
 
   return function (req, res, next) {
     var query = self.Model.findOne({ _id: req.params.id});
@@ -198,6 +214,7 @@ Resource.prototype.update = function () {
       model.set(req.body);
       
       async.waterfall([
+        execBeforeSave(req, model, options.beforeSave),
         execSave(model),
         setLocationHeader(req, res),
         emitEvent(self, 'update'),

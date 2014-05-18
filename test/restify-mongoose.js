@@ -216,6 +216,30 @@ describe('restify-mongoose', function () {
         .end(done);
     });
 
+    it('should create note with beforeSave', function (done) {
+      var svr = server(false);
+      var content = 'Specifically buy a soprano ukulele, the most common kind.';
+      var opts = {
+        beforeSave: function(req, model, cb) {
+          model.content = content; 
+          cb();
+        }
+      };
+      svr.post('/notes', svr.notes.insert(opts));
+
+      request(svr)
+        .post('/notes')
+        .send({ title: 'Buy a ukulele', date: new Date() })
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function(res) {
+          res.headers.should.have.property("location");
+          res.body.content.should.equal(content);
+        })
+        .end(done);
+
+    });
+
     it('should respond with 400 if not valid', function (done) {
       request(server())
         .post('/notes')
@@ -263,6 +287,35 @@ describe('restify-mongoose', function () {
           .patch('/notes/' + note.id)
           .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
+          .expect(200)
+          .end(done);
+      });
+    });
+
+    it('should update existing note with beforeSave', function (done) {
+      Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        var svr = server(false);
+        var content = 'Specifically buy a soprano ukulele, the most common kind.';
+        var opts = {
+          beforeSave: function(req, model, cb) {
+            model.content = content;
+            cb();
+          }
+        };
+        svr.patch('/notes/:id', svr.notes.update(opts));
+        
+
+        request(svr)
+          .patch('/notes/' + note.id)
+          .send({ title: 'Buy a ukulele' })
+          .expect('Content-Type', /json/)
+          .expect(function(res) {
+            res.body.content.should.equal(content);
+          })
           .expect(200)
           .end(done);
       });
