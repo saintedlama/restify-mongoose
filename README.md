@@ -115,3 +115,13 @@ Select fields are passed directly to [mongoose select query function](http://mon
 To select only date the field of a notes resource append the __select__ query parameter to the URL:
 
     http://localhost:3000/notes?select=date
+
+## Changelog
+
+### 0.2.0
+
+* Added `before` and `after` options to the `serve` function which pass arrays of handlers to the restify handler chain.
+* Added `beforeSave` functionality to the **insert** and **update** operations.
+* Added coverage script to package.json
+* The insert and update operations now use aync.waterfall
+* The server test helper has an optional parameter which will set or not set default routes 
