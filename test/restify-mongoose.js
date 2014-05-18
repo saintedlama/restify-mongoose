@@ -615,5 +615,20 @@ describe('restify-mongoose', function () {
           .end(done);
       });
     });
+
+    it('should not require "before" or "after" middleware', function (done) {
+      var svr = server(false);
+      svr.notes.serve('/servenotes', svr, {});
+
+      request(svr)
+        .post('/servenotes')
+        .send({ title: 'Buy a ukulele without middleware', date: new Date() })
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function(res) {
+          res.headers.should.have.property("location");
+        })
+        .end(done);
+    });
   });
 });
