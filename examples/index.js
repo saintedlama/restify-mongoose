@@ -16,9 +16,6 @@ server.use(restify.acceptParser(server.acceptable));
 server.use(restify.queryParser());
 server.use(restify.bodyParser());
 
-// Public route to serve angular.js app and html/js/css files
-server.get(/\/public\/?.*/, restify.serveStatic({ directory : './public' }));
-
 var notes = restifyMongoose(models.Note);
 
 // Serve model Notes as a REST API
@@ -30,6 +27,12 @@ server.del('/notes/:id', notes.remove());
 
 // Serve model Note as a REST API
 restifyMongoose(models.Note).serve('/api/notes', server);
+
+// Public route to serve angular.js app and html/js/css files
+server.get(/.*/, restify.serveStatic({
+  directory: 'public',
+  default: 'index.html'
+}));
 
 server.listen(3000, function () {
   console.log('%s listening at %s. Point your browser to "%s/public/index.html" to see the angular UI in action!', server.name, server.url, server.url);
