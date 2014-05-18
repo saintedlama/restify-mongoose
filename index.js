@@ -257,20 +257,21 @@ Resource.prototype.serve = function (path, server, options) {
   options = options || {};
 
   var handlerChain = function handlerChain(handler, before, after) {
-    if (options && (before || after)) {
-      var handlers = [];
-      if (before) {
-        handlers = handlers.concat(before);
-      }
-      handlers.push(handler);
-      if (after) {
-        handlers = handlers.concat(after);
-      }
-      return handlers;
-    } else {
-      return handler;
+    var handlers = [];
+
+    if (before) {
+      handlers = handlers.concat(before);
     }
+
+    handlers.push(handler);
+
+    if (after) {
+      handlers = handlers.concat(after);
+    }
+
+    return handlers;
   };
+
   var closedPath = path[path.length - 1] === '/' ? path : path + '/';
 
   server.get(
