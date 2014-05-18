@@ -256,14 +256,47 @@ Resource.prototype.remove = function () {
   };
 };
 
-Resource.prototype.serve = function (path, server) {
+Resource.prototype.serve = function (path, server, options) {
+
+  options = options || {};
+
+  var handlerChain = function handlerChain(handler, before, after) {
+    if (options && (before || after)) {
+      var handlers = [];
+      if (before) {
+        handlers = handlers.concat(before);
+      }
+      handlers.push(handler);
+      if (after) {
+        handlers = handlers.concat(after);
+      }
+      return handlers;
+    } else {
+      return handler;
+    }
+  };
   var closedPath = path[path.length - 1] === '/' ? path : path + '/';
 
-  server.get(path, this.query());
-  server.get(closedPath + ':id', this.detail());
-  server.post(path, this.insert());
-  server.del(closedPath + ':id', this.remove());
-  server.patch(closedPath + ':id', this.update());
+  server.get(
+    path, 
+    handlerChain(this.query(), options.before, options.after)
+  );
+  server.get(
+    closedPath + ':id', 
+    handlerChain(this.detail(), options.before, options.after)
+  );
+  server.post(
+    path, 
+    handlerChain(this.insert(), options.before, options.after)
+  );
+  server.del(
+    closedPath + ':id', 
+    handlerChain(this.remove(), options.before, options.after)
+  );
+  server.patch(
+    closedPath + ':id', 
+    handlerChain(this.update(), options.before, options.after)
+  );
 };
 
 module.exports = function (Model, options) {

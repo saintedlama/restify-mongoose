@@ -470,6 +470,25 @@ describe('restify-mongoose', function () {
   });
 
   describe('serve', function () {
+    var generateOptions = function(beforeCalled, afterCalled) {
+      return {
+        before: [ function(req, res, next) {
+          beforeCalled[0] = true;
+          next();
+        }, function(req, res, next) {
+          beforeCalled[1] = true;
+          next();
+        }],
+        after: [ function(req, res, next) {
+          afterCalled[0] = true; 
+          next();
+        }, function(req, res, next) {
+          afterCalled[1] = true;
+          next();
+        }]
+      };
+    };
+
     before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
     after(mongoTest.disconnect());
 
@@ -478,9 +497,13 @@ describe('restify-mongoose', function () {
         if (err) {
           throw err;
         }
+        
+        var beforeCalled = [false, false];
+        var afterCalled = [false, false];
+        var options = generateOptions(beforeCalled, afterCalled); 
 
-        var svr = server();
-        svr.notes.serve('/servenotes', svr);
+        var svr = server(false);
+        svr.notes.serve('/servenotes', svr, options);
 
         request(svr)
           .get('/servenotes')
@@ -488,6 +511,8 @@ describe('restify-mongoose', function () {
           .expect(200)
           .expect(function(res) {
             res.body.should.have.lengthOf(1);
+            beforeCalled.should.matchEach(true);
+            afterCalled.should.matchEach(true);
           })
           .end(done);
       });
@@ -499,8 +524,12 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var svr = server();
-        svr.notes.serve('/servenotes', svr);
+        var beforeCalled = [false, false];
+        var afterCalled = [false, false];
+        var options = generateOptions(beforeCalled, afterCalled); 
+
+        var svr = server(false);
+        svr.notes.serve('/servenotes', svr, options);
 
         request(svr)
           .get('/servenotes/' + note.id)
@@ -508,14 +537,20 @@ describe('restify-mongoose', function () {
           .expect(200)
           .expect(function(res) {
             res.body.title.should.equal('detailtitle');
+            beforeCalled.should.matchEach(true);
+            afterCalled.should.matchEach(true);
           })
           .end(done);
       });
     });
 
     it('should create note', function (done) {
-      var svr = server();
-      svr.notes.serve('/servenotes', svr);
+      var beforeCalled = [false, false];
+      var afterCalled = [false, false];
+      var options = generateOptions(beforeCalled, afterCalled); 
+
+      var svr = server(false);
+      svr.notes.serve('/servenotes', svr, options);
 
       request(svr)
         .post('/servenotes')
@@ -524,6 +559,8 @@ describe('restify-mongoose', function () {
         .expect(200)
         .expect(function(res) {
           res.headers.should.have.property("location");
+          beforeCalled.should.matchEach(true);
+          afterCalled.should.matchEach(true);
         })
         .end(done);
     });
@@ -534,14 +571,22 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var svr = server();
-        svr.notes.serve('/servenotes', svr);
+        var beforeCalled = [false, false];
+        var afterCalled = [false, false];
+        var options = generateOptions(beforeCalled, afterCalled); 
+
+        var svr = server(false);
+        svr.notes.serve('/servenotes', svr, options);
 
         request(svr)
           .patch('/servenotes/' + note.id)
           .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
           .expect(200)
+          .expect(function(res) {
+            beforeCalled.should.matchEach(true);
+            afterCalled.should.matchEach(true);
+          })
           .end(done);
       });
     });
@@ -552,13 +597,21 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var svr = server();
-        svr.notes.serve('/servenotes', svr);
+        var beforeCalled = [false, false];
+        var afterCalled = [false, false];
+        var options = generateOptions(beforeCalled, afterCalled); 
+
+        var svr = server(false);
+        svr.notes.serve('/servenotes', svr, options);
 
         request(svr)
           .del('/servenotes/' + note.id)
           .expect('Content-Type', /json/)
           .expect(200)
+          .expect(function(res) {
+            beforeCalled.should.matchEach(true);
+            afterCalled.should.matchEach(true);
+          })
           .end(done);
       });
     });
