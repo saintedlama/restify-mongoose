@@ -565,6 +565,36 @@ describe('restify-mongoose', function () {
         .end(done);
     });
 
+    it('should create note with beforeSave', function (done) {
+      var beforeCalled = [false, false];
+      var afterCalled = [false, false];
+      var options = generateOptions(beforeCalled, afterCalled); 
+     
+      var svrOptions = {};
+      var content = 'Specifically buy a soprano ukulele, the most common kind.';
+      svrOptions.beforeSave = function(req, model, cb) {
+        model.content = content;
+        cb();
+      };
+
+      var svr = server(svrOptions, false);
+      svr.notes.serve('/servenotes', svr, options);
+
+      request(svr)
+        .post('/servenotes')
+        .send({ title: 'Buy a ukulele', date: new Date() })
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function(res) {
+          res.headers.should.have.property("location");
+          res.body.content.should.equal(content);
+          beforeCalled.should.matchEach(true);
+          afterCalled.should.matchEach(true);
+        })
+
+        .end(done);
+    });
+
     it('should update existing note', function (done) {
       Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
         if(err) {
@@ -584,6 +614,40 @@ describe('restify-mongoose', function () {
           .expect('Content-Type', /json/)
           .expect(200)
           .expect(function(res) {
+            beforeCalled.should.matchEach(true);
+            afterCalled.should.matchEach(true);
+          })
+          .end(done);
+      });
+    });
+
+    it('should update existing note with beforeSave', function (done) {
+      Note.create({ title: 'updateThisTitle', date: new Date(), tags: ['a', 'b', 'c'], content: 'Content' }, function (err, note) {
+        if(err) {
+          throw err;
+        }
+
+        var beforeCalled = [false, false];
+        var afterCalled = [false, false];
+        var options = generateOptions(beforeCalled, afterCalled); 
+
+        var svrOptions = {};
+        var content = 'Specifically buy a soprano ukulele, the most common kind.';
+        svrOptions.beforeSave = function(req, model, cb) {
+          model.content = content;
+          cb();
+        };
+
+        var svr = server(svrOptions, false);
+        svr.notes.serve('/servenotes', svr, options);
+
+        request(svr)
+          .patch('/servenotes/' + note.id)
+          .send({ title: 'Buy a ukulele' })
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(function(res) {
+            res.body.content.should.equal(content);
             beforeCalled.should.matchEach(true);
             afterCalled.should.matchEach(true);
           })

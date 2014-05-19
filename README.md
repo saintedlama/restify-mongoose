@@ -140,10 +140,12 @@ var notes = restifyMongoose(Note, {filter: filterUser});
 * Added coverage script to package.json
 * The insert and update operations now use aync.waterfall
 * The server test helper has an optional parameter which will set or not set default routes 
- 
-### 0.2.1
 
+### 0.2.1
 * Updates to restify 2.8.x
 * Updates to async 0.9.x
 * Improved the error message for mongoose validation errors
 * Code cleanup
+
+### 0.2.2
+* The `beforeSave` option can now be included in the options passed to the `restifyMongoose` constructor.
