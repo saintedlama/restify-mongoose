@@ -172,6 +172,7 @@ Resource.prototype.insert = function (options) {
   var self = this;
 
   options = options || {};
+  options.beforeSave = options.beforeSave || this.options.beforeSave;
 
   return function(req, res, next) {
     var model = new self.Model(req.body);
@@ -189,6 +190,7 @@ Resource.prototype.update = function (options) {
   var self = this;
 
   options = options || {};
+  options.beforeSave = options.beforeSave || this.options.beforeSave;
 
   return function (req, res, next) {
     var query = self.Model.findOne({ _id: req.params.id});
