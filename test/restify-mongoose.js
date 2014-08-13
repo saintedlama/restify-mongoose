@@ -124,6 +124,39 @@ describe('restify-mongoose', function () {
     });
   });
 
+  describe('query-pagination', function () {
+    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    before(mongoTest.populate(Note,
+      { title: 'first', date: new Date() },
+      { title: 'second', date: new Date() },
+      { title: 'third', date: new Date() },
+      { title: 'forth', date: new Date() },
+      { title: 'fifth', date: new Date() }
+    ));
+
+    after(mongoTest.disconnect());
+
+    it('should limit notes returned to pageSize', function (done) {
+      request(server({ pageSize: 2 }))
+        .get('/notes')
+        .expect(200)
+        .expect(function(res) {
+          res.body.should.have.lengthOf(2);
+        })
+        .end(done);
+    });
+
+    it('should split pages by pageSize', function (done) {
+      request(server({ pageSize: 2 }))
+        .get('/notes?p=2')
+        .expect(200)
+        .expect(function(res) {
+          res.body.should.have.lengthOf(1);
+        })
+        .end(done);
+    });
+  });
+
   describe('detail', function () {
     before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
     after(mongoTest.disconnect());
