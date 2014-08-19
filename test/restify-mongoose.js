@@ -124,14 +124,14 @@ describe('restify-mongoose', function () {
     });
   });
 
-  describe('query-pagination', function () {
+  describe('pagination', function () {
     before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
     before(mongoTest.populate(Note,
-      { title: 'first', date: new Date() },
-      { title: 'second', date: new Date() },
-      { title: 'third', date: new Date() },
-      { title: 'forth', date: new Date() },
-      { title: 'fifth', date: new Date() }
+      { title: 'first', content: 'a', date: new Date() },
+      { title: 'second', content: 'a', date: new Date() },
+      { title: 'third', content: 'a', date: new Date() },
+      { title: 'forth', content: 'b', date: new Date() },
+      { title: 'fifth', content: 'b', date: new Date() }
     ));
 
     after(mongoTest.disconnect());
@@ -154,6 +154,103 @@ describe('restify-mongoose', function () {
           res.body.should.have.lengthOf(1);
         })
         .end(done);
+    });
+
+    function assertFirstPage(suffix) {
+      return function (done) {
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
+          .get('/notes' + suffix)
+          .expect(200)
+          .expect(function(res) {
+            res.body[0].title.should.equal('first');
+            res.body[1].title.should.equal('second');
+          })
+          .end(done);
+      }
+    }
+
+    it('should respond with first page given no page parameter', assertFirstPage(''));
+    it('should respond with first page given blank page parameter', assertFirstPage('?p='));
+    it('should respond with first page given invalid page parameter', assertFirstPage('?p=abcd'));
+    it('should respond with first page given negative page number', assertFirstPage('?p=-123'));
+
+    describe('link header', function () {
+      it('should include link header with url to next page if more pages', function (done) {
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
+          .get('/notes?p=1')
+          .expect(200)
+          .expect(function(res) {
+            res.headers.should.have.property("link");
+            res.headers.link.should.match(new RegExp('<http://example.com/notes\\?p=2>; rel="next"'));
+          })
+          .end(done);
+      });
+
+      it('should preserve query parameters across urls in link header', function (done) {
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
+          .get('/notes?q={"content":"a"}')
+          .expect(200)
+          .expect(function(res) {
+            res.headers.should.have.property("link");
+            res.headers.link.should.match(new RegExp('<http://example.com/notes\\?q=' + encodeURIComponent('{"content":"a"}') + '&p=1>; rel="next"'));
+          })
+          .end(done);
+      });
+
+      it('should not include next page url in link header if no more pages', function (done) {
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
+          .get('/notes?p=2')
+          .expect(200)
+          .expect(function(res) {
+            res.headers.should.have.property("link");
+            res.headers.link.should.not.match(/rel="next"/);
+          })
+          .end(done);
+      });
+
+      it('should include previous page url in link header if not at first page', function (done) {
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
+          .get('/notes?p=2')
+          .expect(200)
+          .expect(function(res) {
+            res.headers.should.have.property("link");
+            res.headers.link.should.match(new RegExp('<http://example.com/notes\\?p=1>; rel="prev"'));
+          })
+          .end(done);
+      });
+
+      it('should not include previous page url in link header if already at first page', function (done) {
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
+          .get('/notes?p=0')
+          .expect(200)
+          .expect(function(res) {
+            res.headers.should.have.property("link");
+            res.headers.link.should.not.match(/rel="prev"/);
+          })
+          .end(done);
+      });
+
+      it('should include first page url in link header', function (done) {
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
+          .get('/notes?p=0')
+          .expect(200)
+          .expect(function(res) {
+            res.headers.should.have.property("link");
+            res.headers.link.should.match(new RegExp('<http://example.com/notes\\?p=0>; rel="first"'));
+          })
+          .end(done);
+      });
+
+      it('should support multiple links in link header', function (done) {
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
+          .get('/notes?p=1')
+          .expect(200)
+          .expect(function(res) {
+            res.headers.link.should.match(/rel="first", <http/);
+            res.headers.link.should.match(/rel="prev", <http/);
+          })
+          .end(done);
+      });
     });
   });
 
