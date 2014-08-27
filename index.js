@@ -2,6 +2,7 @@
 var async = require('async');
 var restify = require('restify');
 var util = require('util');
+var url = require('url');
 var EventEmitter = require('events').EventEmitter;
 
 var restifyError = function(err) {
@@ -87,12 +88,43 @@ var buildProjection = function(req, projection) {
   }
 };
 
+var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
+  function makeLink(page, rel) {
+    var path = url.parse(req.url, true);
+    path.query.p = page;
+    delete path.search; // required for url.format to re-generate querystring
+    var href = url.resolve(baseUrl, url.format(path));
+    return util.format('<%s>; rel="%s"', href, rel);
+  }
+
+  return function applyPageLinksInner(models, cb) {
+    var link = makeLink(0, 'first');
+
+    if (page > 0) {
+      link += ', ' + makeLink(page - 1, 'prev');
+    }
+
+    var moreResults = models.length > pageSize;
+    if (moreResults) {
+      models.pop();
+
+      link += ', ' + makeLink(page + 1, 'next');
+    }
+
+    res.setHeader('link', link);
+
+    cb(null, models);
+  };
+}
+
+
 var Resource = function (Model, options) {
   EventEmitter.call(this);
   this.Model = Model;
 
   this.options = options || {};
   this.options.pageSize = this.options.pageSize || 100;
+  this.options.baseUrl = this.options.baseUrl || '';
   this.options.listProjection = this.options.listProjection || function (req, item, cb) {
     cb(null, item);
   };
@@ -108,6 +140,7 @@ Resource.prototype.query = function (options) {
 
   options = options || {};
   options.pageSize = options.pageSize || this.options.pageSize;
+  options.baseUrl = options.baseUrl || this.options.baseUrl;
   options.projection = options.projection || this.options.listProjection;
 
   return function (req, res, next) {
@@ -134,12 +167,13 @@ Resource.prototype.query = function (options) {
       query = query.where(self.options.filter(req, res));
     }
 
-    var page = req.query.p || 0;
+    var page = Number(req.query.p) >= 0 ? Number(req.query.p) : 0;
     query.skip(options.pageSize * page);
-    query.limit(options.pageSize);
+    query.limit(options.pageSize + 1);
 
     async.waterfall([
       execQuery(query),
+      applyPageLinks(req, res, page, options.pageSize, options.baseUrl),
       buildProjections(req, options.projection),
       emitEvent(self, 'query'),
       sendData(res)
