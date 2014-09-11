@@ -251,6 +251,17 @@ describe('restify-mongoose', function () {
           })
           .end(done);
       });
+
+      it('should include base url paths in link header urls', function (done) {
+        request(server({ pageSize: 2, baseUrl: 'http://example.com/v1' }))
+          .get('/notes?p=0')
+          .expect(200)
+          .expect(function(res) {
+            res.headers.should.have.property("link");
+            res.headers.link.should.match(new RegExp('<http://example.com/v1/notes\\?p=0>; rel="first"'));
+          })
+          .end(done);
+      });
     });
   });
 
