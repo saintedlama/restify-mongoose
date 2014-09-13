@@ -93,7 +93,7 @@ var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
     var path = url.parse(req.url, true);
     path.query.p = page;
     delete path.search; // required for url.format to re-generate querystring
-    var href = url.resolve(baseUrl, url.format(path));
+    var href = baseUrl + url.format(path);
     return util.format('<%s>; rel="%s"', href, rel);
   }
 
