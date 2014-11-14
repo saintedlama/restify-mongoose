@@ -123,12 +123,62 @@ The function takes two parameters: the request object and the response object. T
 
 For instance, you can use a filter to display only results for a particular user: 
 
-```
+```javascript
 var filterUser = function(req, res) {
   return {user: req.user};
 }
 
 var notes = restifyMongoose(Note, {filter: filterUser});
+```
+
+## Projection
+
+A projection is a function, used by the `query` and `detail` opersations, which takes the request object, the result model, and a callback. This function should invoke the callback exactly once. This callback takes an error and a model item as it's two parameters. Use `null` for the error is there is no error.
+
+For instance, the default detail and list projections are as follows:
+
+```javascript
+function (req, item, cb) {
+  cb(null, item);
+};
+```
+
+A projection is useful if you need to manipulate the result item before returning it in the response. For instance, you may not want to return the passwordHash for a User data model.
+
+```javascript
+// If this is the schema
+var UserSchema = new Schema({
+  username: String,
+  email: String,
+  passwordHash: String
+});
+
+// This is a projection translating _id to id and not including passwordHash
+var userProjection = function(req, item, cb) {
+  var user = {
+    id: item._id,
+    username: item.username,
+    email: item.email
+  };
+  cb(null, user);
+};
+```
+
+Projection functions are specified in the options for the resitfy-mongoose contructor, the query function, or the detail function.
+
+For the construtor, the options are `listProjection` and `detailProjection`
+
+```javascript
+var users = restifyMongoose(User, {listProjection: userProjection, detailProjection: userProjection});
+users.serve('/users', restifyServer);
+```
+
+For both query and detail, the option is `projection`
+var users = restifyMongoose(User);
+
+```javascript
+users.detail({projection: userProjection});
+users.query({projection: userProjection});
 ```
 
 ## Changelog
