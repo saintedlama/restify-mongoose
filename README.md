@@ -73,6 +73,21 @@ In the above getting started example we used fine grained mapping control. Resti
 For every ´id´ dependent function the restify route has to define a `:id` placeholder to allow restify-mongoose to access
 id parameters. Id dependent functions are `detail`, `update` and `delete`.
 
+__Query String__
+
+Setting a `queryString` will make restify-mongoose use the string as the field name to conduct its searches in the `detail` `update` & `remove` functions.
+If not set it will use the default behavior of using mongos `_id` field.
+
+```javascript
+// Now create a restify-mongoose resource from 'Note' mongoose model and set queryString to 'myField'
+var notes = restifyMongoose(Note, {queryString: 'myField'});
+
+// these functions will now conduct searches with the field 'myField'. (defaults to '_id')
+server.get('/notes/:id', notes.detail());
+server.patch('/notes/:id', notes.update());
+server.del('/notes/:id', notes.remove());
+```
+
 __Quick mapping__
 
 ```javascript

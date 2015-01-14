@@ -123,6 +123,7 @@ var Resource = function (Model, options) {
   this.Model = Model;
 
   this.options = options || {};
+  this.options.queryString = this.options.queryString || '_id';
   this.options.pageSize = this.options.pageSize || 100;
   this.options.baseUrl = this.options.baseUrl || '';
   this.options.listProjection = this.options.listProjection || function (req, item, cb) {
@@ -187,7 +188,10 @@ Resource.prototype.detail = function (options) {
   options = options || {};
   options.projection = options.projection || this.options.detailProjection;
   return function (req, res, next) {
-    var query = self.Model.findOne({ _id: req.params.id});
+    var find = {};
+    find[self.options.queryString] = req.params.id;
+
+    var query = self.Model.findOne(find);
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
@@ -227,7 +231,10 @@ Resource.prototype.update = function (options) {
   options.beforeSave = options.beforeSave || this.options.beforeSave;
 
   return function (req, res, next) {
-    var query = self.Model.findOne({ _id: req.params.id});
+    var find = {};
+    find[self.options.queryString] = req.params.id;
+
+    var query = self.Model.findOne(find);
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
@@ -264,7 +271,10 @@ Resource.prototype.remove = function () {
   var emitRemove = emitEvent(self, 'remove');
 
   return function (req, res, next) {
-    var query = self.Model.findOne({ _id: req.params.id});
+    var find = {};
+    find[self.options.queryString] = req.params.id;
+
+    var query = self.Model.findOne(find);
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
