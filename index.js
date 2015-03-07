@@ -26,9 +26,16 @@ var emitEvent = function(self, event) {
   }
 };
 
-var sendData = function(res) {
-  return function(model, cb) {
-    res.send(model);
+var sendData = function(res,format,modelName) {
+  return function(model,cb) {    
+    if(format === 'json-api'){
+      var responseObj = {};
+      responseObj[modelName] = model;
+      res.json(responseObj);
+    }
+    else{
+      res.send(model);
+    }    
     cb(undefined, model);
   }
 };
@@ -125,6 +132,8 @@ var Resource = function (Model, options) {
   this.options = options || {};
   this.options.pageSize = this.options.pageSize || 100;
   this.options.baseUrl = this.options.baseUrl || '';
+  this.options.outputFormat = this.options.outputFormat || 'regular';
+  this.options.modelName = this.options.modelName || Model.modelName;
   this.options.listProjection = this.options.listProjection || function (req, item, cb) {
     cb(null, item);
   };
@@ -142,6 +151,8 @@ Resource.prototype.query = function (options) {
   options.pageSize = options.pageSize || this.options.pageSize;
   options.baseUrl = options.baseUrl || this.options.baseUrl;
   options.projection = options.projection || this.options.listProjection;
+  options.outputFormat = options.outputFormat || this.options.outputFormat;
+  options.modelName = options.modelName || this.options.modelName;
 
   return function (req, res, next) {
     var query = self.Model.find({});
@@ -176,7 +187,7 @@ Resource.prototype.query = function (options) {
       applyPageLinks(req, res, page, options.pageSize, options.baseUrl),
       buildProjections(req, options.projection),
       emitEvent(self, 'query'),
-      sendData(res)
+      sendData(res,options.outputFormat,options.modelName)
     ], next);
   };
 };
@@ -186,6 +197,8 @@ Resource.prototype.detail = function (options) {
 
   options = options || {};
   options.projection = options.projection || this.options.detailProjection;
+  options.outputFormat = options.outputFormat || this.options.outputFormat;
+  options.modelName = options.modelName || this.options.modelName;
   return function (req, res, next) {
     var query = self.Model.findOne({ _id: req.params.id});
 
@@ -197,7 +210,7 @@ Resource.prototype.detail = function (options) {
       execQuery(query),
       buildProjection(req, options.projection),
       emitEvent(self, 'detail'),
-      sendData(res)
+      sendData(res,options.outputFormat,options.modelName)
     ], next);
   };
 };
@@ -207,6 +220,8 @@ Resource.prototype.insert = function (options) {
 
   options = options || {};
   options.beforeSave = options.beforeSave || this.options.beforeSave;
+  options.outputFormat = options.outputFormat || this.options.outputFormat;
+  options.modelName = options.modelName || this.options.modelName;
 
   return function(req, res, next) {
     var model = new self.Model(req.body);
@@ -215,7 +230,7 @@ Resource.prototype.insert = function (options) {
       execSave(model),
       setLocationHeader(req, res),
       emitEvent(self, 'insert'),
-      sendData(res)
+      sendData(res,options.outputFormat,options.modelName)
     ], next);
   };
 };
@@ -225,6 +240,8 @@ Resource.prototype.update = function (options) {
 
   options = options || {};
   options.beforeSave = options.beforeSave || this.options.beforeSave;
+  options.outputFormat = options.outputFormat || this.options.outputFormat;
+  options.modelName = options.modelName || this.options.modelName;
 
   return function (req, res, next) {
     var query = self.Model.findOne({ _id: req.params.id});
@@ -253,7 +270,7 @@ Resource.prototype.update = function (options) {
         execSave(model),
         setLocationHeader(req, res),
         emitEvent(self, 'update'),
-        sendData(res)
+        sendData(res,options.outputFormat,options.modelName)
       ], next);
     });
   };
