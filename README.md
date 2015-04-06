@@ -148,7 +148,7 @@ var notes = restifyMongoose(Note, {filter: filterUser});
 
 ## Projection
 
-A projection is a function, used by the `query` and `detail` opersations, which takes the request object, the result model, and a callback. This function should invoke the callback exactly once. This callback takes an error and a model item as it's two parameters. Use `null` for the error is there is no error.
+A projection is a function, used by the `query` and `detail` operations, which takes the request object, the result model, and a callback. This function should invoke the callback exactly once. This callback takes an error and a model item as it's two parameters. Use `null` for the error is there is no error.
 
 For instance, the default detail and list projections are as follows:
 
@@ -195,6 +195,21 @@ var users = restifyMongoose(User);
 users.detail({projection: userProjection});
 users.query({projection: userProjection});
 ```
+## Output format
+
+The output format can be changed to a more compatible one with the [json-api](http://jsonapi.org/format/) standard to use the API with frameworks like Ember.
+
+```javascript
+var users = restifyMongoose(User, {outputFormat: 'json-api'});
+users.serve('/users', restifyServer);
+``
+Also you can specify a custom model name like this:
+
+```javascript
+var users = restifyMongoose(User, {outputFormat: 'json-api', modelName: 'admins'});
+users.serve('/users', restifyServer);
+``
+
 
 ## Changelog
 
