@@ -274,3 +274,13 @@ users.serve('/users', restifyServer);
 
 ### 0.2.2
 * The `beforeSave` option can now be included in the options passed to the `restifyMongoose` constructor.
+
+### 0.3.0
+* Added total count of resources for `query` by adding X-Total-Count header`
+* Updated to async 1.2.1
+* Updated to mongoose 4.0.6
+* Updated to restify 3.0.3
+* Updated to mocha 2.2.5
+* Updated to should 7.0.1
+* Updated to supertest 1.0.1
+* Updated to istanbul 0.3.16
