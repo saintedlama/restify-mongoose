@@ -5,19 +5,21 @@ var util = require('util');
 var url = require('url');
 var EventEmitter = require('events').EventEmitter;
 
-var restifyError = function(err) {
+var restifyError = function (err) {
   if ('ValidationError' !== err.name) {
     return err;
   }
 
-  return new restify.InvalidContentError({ body : {
-    message : 'Validation failed',
-    errors : err.errors
-  }});
+  return new restify.InvalidContentError({
+    body: {
+      message: 'Validation failed',
+      errors: err.errors
+    }
+  });
 };
 
-var emitEvent = function(self, event) {
-  return function(model, cb) {
+var emitEvent = function (self, event) {
+  return function (model, cb) {
     self.emit(event, model);
 
     if (cb) {
@@ -26,40 +28,62 @@ var emitEvent = function(self, event) {
   }
 };
 
-var sendData = function(res,format,modelName) {
-  return function(model,cb) {    
-    if(format === 'json-api'){
+var sendData = function (res, format, modelName) {
+  return function (model, cb) {
+    if (format === 'json-api') {
       var responseObj = {};
       responseObj[modelName] = model;
       res.json(responseObj);
     }
-    else{
+    else {
       res.send(model);
-    }    
+    }
     cb(undefined, model);
   }
 };
 
-var execQuery = function(query) {
-  return function(cb) {
+var execQueryWithTotCount = function (query, countQuery) {
+  return function (cb) {
+    async.parallel({
+        models: function (callback) {
+          query.exec(callback);
+        },
+        count: function (callback) {
+          countQuery.count(callback);
+        }
+      },
+      function (err, results) {
+        if (err) {
+          return cb(restifyError(err));
+        }
+        else {
+          cb(null, results.models, results.count);
+        }
+      });
+
+  }
+}
+
+var execQuery = function (query) {
+  return function (cb) {
     query.exec(cb);
   }
-};
+}
 
-var execBeforeSave = function(req, model, beforeSave) {
+var execBeforeSave = function (req, model, beforeSave) {
   if (!beforeSave) {
-    beforeSave = function(req, model, cb) {
+    beforeSave = function (req, model, cb) {
       cb();
     };
   }
-  return function(cb) {
+  return function (cb) {
     beforeSave(req, model, cb);
   };
 };
 
 var execSave = function (model) {
-  return function(cb) {
-    model.save(function(err, model) {
+  return function (cb) {
+    model.save(function (err, model) {
       if (err)
         return cb(restifyError(err));
       else
@@ -69,14 +93,14 @@ var execSave = function (model) {
 };
 
 var setLocationHeader = function (req, res) {
-  return function(model, cb) {
+  return function (model, cb) {
     res.header('Location', req.url + '/' + model._id);
     cb(null, model);
   };
 };
 
-var buildProjections = function(req, projection) {
-  return function(models, cb) {
+var buildProjections = function (req, projection) {
+  return function (models, cb) {
     var iterator = function (model, cb) {
       projection(req, model, cb);
     };
@@ -85,8 +109,8 @@ var buildProjections = function(req, projection) {
   }
 };
 
-var buildProjection = function(req, projection) {
-  return function(model, cb) {
+var buildProjection = function (req, projection) {
+  return function (model, cb) {
     if (!model) {
       return cb(new restify.ResourceNotFoundError(req.params.id));
     }
@@ -104,7 +128,7 @@ var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
     return util.format('<%s>; rel="%s"', href, rel);
   }
 
-  return function applyPageLinksInner(models, cb) {
+  return function applyPageLinksInner(models, totalCount, cb) {
     var link = makeLink(0, 'first');
 
     if (page > 0) {
@@ -120,10 +144,17 @@ var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
 
     res.setHeader('link', link);
 
-    cb(null, models);
+    cb(null, models, totalCount);
   };
 }
 
+var applyTotalCount = function (res) {
+  return function applyTotalCountInner(models, totalCount, cb) {
+    res.setHeader('X-Total-Count', totalCount);
+
+    cb(null, models);
+  };
+}
 
 var Resource = function (Model, options) {
   EventEmitter.call(this);
@@ -136,11 +167,11 @@ var Resource = function (Model, options) {
   this.options.outputFormat = this.options.outputFormat || 'regular';
   this.options.modelName = this.options.modelName || Model.modelName;
   this.options.listProjection = this.options.listProjection || function (req, item, cb) {
-    cb(null, item);
-  };
+      cb(null, item);
+    };
   this.options.detailProjection = this.options.detailProjection || function (req, item, cb) {
-    cb(null, item);
-  };
+      cb(null, item);
+    };
 };
 
 util.inherits(Resource, EventEmitter);
@@ -157,13 +188,15 @@ Resource.prototype.query = function (options) {
 
   return function (req, res, next) {
     var query = self.Model.find({});
+    var countQuery = self.Model.find({});
 
     if (req.query.q) {
       try {
         var q = JSON.parse(req.query.q);
         query = query.where(q);
+        countQuery = countQuery.where(q);
       } catch (err) {
-        return res.send(400, { message: 'Query is not a valid JSON object', errors: err });
+        return res.send(400, {message: 'Query is not a valid JSON object', errors: err});
       }
     }
 
@@ -177,6 +210,7 @@ Resource.prototype.query = function (options) {
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
+      countQuery = countQuery.where(self.options.filter(req, res));
     }
 
     var page = Number(req.query.p) >= 0 ? Number(req.query.p) : 0;
@@ -184,11 +218,12 @@ Resource.prototype.query = function (options) {
     query.limit(options.pageSize + 1);
 
     async.waterfall([
-      execQuery(query),
+      execQueryWithTotCount(query, countQuery),
       applyPageLinks(req, res, page, options.pageSize, options.baseUrl),
+      applyTotalCount(res),
       buildProjections(req, options.projection),
       emitEvent(self, 'query'),
-      sendData(res,options.outputFormat,options.modelName)
+      sendData(res, options.outputFormat, options.modelName)
     ], next);
   };
 };
@@ -214,7 +249,7 @@ Resource.prototype.detail = function (options) {
       execQuery(query),
       buildProjection(req, options.projection),
       emitEvent(self, 'detail'),
-      sendData(res,options.outputFormat,options.modelName)
+      sendData(res, options.outputFormat, options.modelName)
     ], next);
   };
 };
@@ -227,14 +262,14 @@ Resource.prototype.insert = function (options) {
   options.outputFormat = options.outputFormat || this.options.outputFormat;
   options.modelName = options.modelName || this.options.modelName;
 
-  return function(req, res, next) {
+  return function (req, res, next) {
     var model = new self.Model(req.body);
     async.waterfall([
       execBeforeSave(req, model, options.beforeSave),
       execSave(model),
       setLocationHeader(req, res),
       emitEvent(self, 'insert'),
-      sendData(res,options.outputFormat,options.modelName)
+      sendData(res, options.outputFormat, options.modelName)
     ], next);
   };
 };
@@ -271,13 +306,13 @@ Resource.prototype.update = function (options) {
       }
 
       model.set(req.body);
-      
+
       async.waterfall([
         execBeforeSave(req, model, options.beforeSave),
         execSave(model),
         setLocationHeader(req, res),
         emitEvent(self, 'update'),
-        sendData(res,options.outputFormat,options.modelName)
+        sendData(res, options.outputFormat, options.modelName)
       ], next);
     });
   };
@@ -341,23 +376,23 @@ Resource.prototype.serve = function (path, server, options) {
   var closedPath = path[path.length - 1] === '/' ? path : path + '/';
 
   server.get(
-    path, 
+    path,
     handlerChain(this.query(), options.before, options.after)
   );
   server.get(
-    closedPath + ':id', 
+    closedPath + ':id',
     handlerChain(this.detail(), options.before, options.after)
   );
   server.post(
-    path, 
+    path,
     handlerChain(this.insert(), options.before, options.after)
   );
   server.del(
-    closedPath + ':id', 
+    closedPath + ':id',
     handlerChain(this.remove(), options.before, options.after)
   );
   server.patch(
-    closedPath + ':id', 
+    closedPath + ':id',
     handlerChain(this.update(), options.before, options.after)
   );
 };
