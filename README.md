@@ -276,7 +276,7 @@ users.serve('/users', restifyServer);
 * The `beforeSave` option can now be included in the options passed to the `restifyMongoose` constructor.
 
 ### 0.3.0
-* Added total count of resources for `query` by adding X-Total-Count header`
+* Added total count of resources for `query` by adding `X-Total-Count header`
 * Added `last` relation in Link Header for showing URL to last page with results
 * Updated to async 1.2.1
 * Updated to mongoose 4.0.6
