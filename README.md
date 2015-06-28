@@ -114,7 +114,7 @@ To filter a notes resource by title to match term "first" append the __q__ query
 
 ## Paginate
 Requests that return multiple items in `query` will be paginated to 100 items by default. You can set the `pageSize`
-by adding it to the options.
+(number min=1, max=100) by adding it to the options.
 
 ```javascript
 var options = {
@@ -123,6 +123,11 @@ var options = {
 
 var notes = restifyMongoose(Note, options);
 ```
+
+or as query string parameter `pageSize`
+
+    http://localhost:3000/notes?pageSize=2
+
 
 You can specify further pages with the __p__ parameter and a page number.
 
@@ -278,6 +283,7 @@ users.serve('/users', restifyServer);
 ### 0.3.0
 * Added total count of resources for `query` by adding `X-Total-Count header`
 * Added `last` relation in Link Header for showing URL to last page with results
+* Added `pageSize` as query string parameter in order to set page size for pagination in the URL itself
 * Updated to async 1.2.1
 * Updated to mongoose 4.0.6
 * Updated to restify 3.0.3

@@ -156,6 +156,56 @@ describe('restify-mongoose', function () {
         .end(done);
     });
 
+    it('should use pageSize sent as query string if positive number', function (done) {
+      request(server())
+        .get('/notes?pageSize=3')
+        .expect(200)
+        .expect(function (res) {
+          res.body.should.have.lengthOf(3);
+        })
+        .end(done);
+    });
+
+    it('should not use pageSize sent as query string if greater then 100', function (done) {
+      request(server({pageSize: 1}))
+        .get('/notes?pageSize=101')
+        .expect(200)
+        .expect(function (res) {
+          res.body.should.have.lengthOf(1);
+        })
+        .end(done);
+    });
+
+    it('should not use pageSize sent as query string if lower then 0', function (done) {
+      request(server({pageSize: 2}))
+        .get('/notes?pageSize=-1')
+        .expect(200)
+        .expect(function (res) {
+          res.body.should.have.lengthOf(2);
+        })
+        .end(done);
+    });
+
+    it('should not use pageSize sent as query string if not a number', function (done) {
+      request(server({pageSize: 2}))
+        .get('/notes?pageSize=abcd')
+        .expect(200)
+        .expect(function (res) {
+          res.body.should.have.lengthOf(2);
+        })
+        .end(done);
+    });
+
+    it('should not use pageSize sent as query string if it is 0', function (done) {
+      request(server({pageSize: 2}))
+        .get('/notes?pageSize=0')
+        .expect(200)
+        .expect(function (res) {
+          res.body.should.have.lengthOf(2);
+        })
+        .end(done);
+    });
+
     function assertFirstPage(suffix) {
       return function (done) {
         request(server({pageSize: 2, baseUrl: 'http://example.com'}))
