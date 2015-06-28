@@ -124,7 +124,7 @@ var options = {
 var notes = restifyMongoose(Note, options);
 ```
 
-or as query string parameter `pageSize`
+or as query string parameter `pageSize` (which will have the presedence)
 
     http://localhost:3000/notes?pageSize=2
 
