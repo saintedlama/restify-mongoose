@@ -318,6 +318,50 @@ describe('restify-mongoose', function () {
           })
           .end(done);
       });
+
+      it('should include last page url in link header if at first page', function (done) {
+        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+          .get('/notes?p=0')
+          .expect(200)
+          .expect(function (res) {
+            res.headers.should.have.property("link");
+            res.headers.link.should.match(new RegExp('<http://example.com/notes\\?p=2>; rel="last"'));
+          })
+          .end(done);
+      });
+
+      it('should include last page url in link header if not at first page', function (done) {
+        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+          .get('/notes?p=1')
+          .expect(200)
+          .expect(function (res) {
+            res.headers.should.have.property("link");
+            res.headers.link.should.match(new RegExp('<http://example.com/notes\\?p=2>; rel="last"'));
+          })
+          .end(done);
+      });
+
+      it('should include last page url in link header if at last page', function (done) {
+        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+          .get('/notes?p=2')
+          .expect(200)
+          .expect(function (res) {
+            res.headers.should.have.property("link");
+            res.headers.link.should.match(new RegExp('<http://example.com/notes\\?p=2>; rel="last"'));
+          })
+          .end(done);
+      });
+
+      it('should include last page url in link header if page size set to 0', function (done) {
+        request(server({pageSize: 0, baseUrl: 'http://example.com'}))
+          .get('/notes?p=2')
+          .expect(200)
+          .expect(function (res) {
+            res.headers.should.have.property("link");
+            res.headers.link.should.match(new RegExp('<http://example.com/notes\\?p=0>; rel="last"'));
+          })
+          .end(done);
+      });
     });
   });
 

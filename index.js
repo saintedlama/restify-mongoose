@@ -129,17 +129,27 @@ var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
   }
 
   return function applyPageLinksInner(models, totalCount, cb) {
+    // rel: first
     var link = makeLink(0, 'first');
 
+    // rel: prev
     if (page > 0) {
       link += ', ' + makeLink(page - 1, 'prev');
     }
 
+    // rel: next
     var moreResults = models.length > pageSize;
     if (moreResults) {
       models.pop();
 
       link += ', ' + makeLink(page + 1, 'next');
+    }
+
+    // rel: last
+    var lastPage = 0;
+    if (pageSize > 0) {
+      lastPage = Math.ceil(totalCount / pageSize) - 1;
+      link += ', ' + makeLink(lastPage, 'last');
     }
 
     res.setHeader('link', link);

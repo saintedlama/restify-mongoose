@@ -150,7 +150,7 @@ var options = {
 The possible `rel` values are:
 
 * ***next*** - Shows the URL of the immediate next page of results.
-* ***last*** - NOT IMPLEMENTED YET! Shows the URL of the last page of results.
+* ***last*** - Shows the URL of the last page of results.
 * ***first*** - Shows the URL of the first page of results.
 * ***prev*** - Shows the URL of the immediate previous page of results.
 
@@ -277,6 +277,7 @@ users.serve('/users', restifyServer);
 
 ### 0.3.0
 * Added total count of resources for `query` by adding X-Total-Count header`
+* Added `last` relation in Link Header for showing URL to last page with results
 * Updated to async 1.2.1
 * Updated to mongoose 4.0.6
 * Updated to restify 3.0.3
