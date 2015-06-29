@@ -517,7 +517,7 @@ describe('restify-mongoose', function () {
         .post('/notes')
         .send({title: 'Buy a ukulele', date: new Date()})
         .expect('Content-Type', /json/)
-        .expect(200)
+        .expect(201)
         .expect(function (res) {
           res.headers.should.have.property("location");
         })
@@ -539,7 +539,7 @@ describe('restify-mongoose', function () {
         .post('/notes')
         .send({title: 'Buy a ukulele', date: new Date()})
         .expect('Content-Type', /json/)
-        .expect(200)
+        .expect(201)
         .expect(function (res) {
           res.headers.should.have.property("location");
           res.body.content.should.equal(content);
@@ -575,7 +575,7 @@ describe('restify-mongoose', function () {
         .post('/notes')
         .send({title: 'Buy a ukulele', date: new Date()})
         .expect('Content-Type', /json/)
-        .expect(200)
+        .expect(201)
         .expect(function () {
           eventEmitted.should.be.ok;
           eventArg.should.be.ok;
@@ -588,7 +588,7 @@ describe('restify-mongoose', function () {
         .post('/notes')
         .send({title: 'Buy a ukulele', date: new Date()})
         .expect('Content-Type', /json/)
-        .expect(200)
+        .expect(201)
         .expect(function (res) {
           res.headers.should.have.property("location");
           res.headers.location.should.be.equal('http://example.com/notes/' + res.body._id);
@@ -601,7 +601,7 @@ describe('restify-mongoose', function () {
         .post('/notes')
         .send({title: 'Buy a ukulele', date: new Date()})
         .expect('Content-Type', /json/)
-        .expect(200)
+        .expect(201)
         .expect(function (res) {
           res.headers.should.have.property("location");
           res.headers.location.should.be.equal('/notes/' + res.body._id);
@@ -1010,7 +1010,7 @@ describe('restify-mongoose', function () {
         .post('/servenotes')
         .send({title: 'Buy a ukulele', date: new Date()})
         .expect('Content-Type', /json/)
-        .expect(200)
+        .expect(201)
         .expect(function (res) {
           res.headers.should.have.property("location");
           beforeCalled.should.matchEach(true);
@@ -1038,7 +1038,7 @@ describe('restify-mongoose', function () {
         .post('/servenotes')
         .send({title: 'Buy a ukulele', date: new Date()})
         .expect('Content-Type', /json/)
-        .expect(200)
+        .expect(201)
         .expect(function (res) {
           res.headers.should.have.property("location");
           res.body.content.should.equal(content);
@@ -1157,7 +1157,7 @@ describe('restify-mongoose', function () {
         .post('/servenotes')
         .send({title: 'Buy a ukulele without middleware', date: new Date()})
         .expect('Content-Type', /json/)
-        .expect(200)
+        .expect(201)
         .expect(function (res) {
           res.headers.should.have.property("location");
         })
@@ -1181,7 +1181,7 @@ describe('restify-mongoose', function () {
         .post('/servenotes')
         .send({title: 'Buy a ukulele', date: new Date()})
         .expect('Content-Type', /json/)
-        .expect(200)
+        .expect(201)
         .expect(function () {
           beforeCalled.should.equal(true);
         })
@@ -1205,9 +1205,28 @@ describe('restify-mongoose', function () {
         .post('/servenotes')
         .send({title: 'Buy a ukulele', date: new Date()})
         .expect('Content-Type', /json/)
-        .expect(200)
+        .expect(201)
         .expect(function () {
           afterCalled.should.equal(true);
+        })
+        .end(done);
+    });
+  });
+
+  describe('output formats', function () {
+    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    after(mongoTest.disconnect());
+
+    it('should return json-api format if defined in options', function (done) {
+      request(server({outputFormat: 'json-api'}))
+        .post('/notes')
+        .send({title: 'Buy a ukulele', date: new Date()})
+        .expect('Content-Type', /json/)
+        .expect(201)
+        .expect(function (res) {
+          res.headers.should.have.property("location");
+          res.body.should.have.property("notes");
+          res.body.notes.title.should.be.equal("Buy a ukulele");
         })
         .end(done);
     });

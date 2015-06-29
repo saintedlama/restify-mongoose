@@ -284,10 +284,13 @@ users.serve('/users', restifyServer);
 * Added total count of resources for `query` by adding `X-Total-Count header`
 * Added `last` relation in Link Header for showing URL to last page with results
 * Added `pageSize` as query string parameter in order to set page size for pagination in the URL itself
-* Updated to async 1.2.1
-* Updated to mongoose 4.0.6
-* Updated to restify 3.0.3
-* Updated to mocha 2.2.5
-* Updated to should 7.0.1
-* Updated to supertest 1.0.1
-* Updated to istanbul 0.3.16
+* Fixed bug when returning Location URL for `PATCH`, model._id was duplicated
+* Changed status code to `201 CREATED` for successful `POST` requests
+* Updated runtime and dev dependencies to latest versions
+    * Updated to async 1.2.1
+    * Updated to mongoose 4.0.6
+    * Updated to restify 3.0.3
+    * Updated to mocha 2.2.5
+    * Updated to should 7.0.1
+    * Updated to supertest 1.0.1
+    * Updated to istanbul 0.3.16

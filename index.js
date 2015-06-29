@@ -28,15 +28,15 @@ var emitEvent = function (self, event) {
   }
 };
 
-var sendData = function (res, format, modelName) {
+var sendData = function (res, format, modelName, status) {
   return function (model, cb) {
     if (format === 'json-api') {
       var responseObj = {};
       responseObj[modelName] = model;
-      res.json(responseObj);
+      res.json(status, responseObj);
     }
     else {
-      res.send(model);
+      res.send(status, model);
     }
     cb(undefined, model);
   }
@@ -302,7 +302,7 @@ Resource.prototype.insert = function (options) {
       execSave(model),
       setLocationHeader(req, res, true, options.baseUrl),
       emitEvent(self, 'insert'),
-      sendData(res, options.outputFormat, options.modelName)
+      sendData(res, options.outputFormat, options.modelName, 201)
     ], next);
   };
 };
