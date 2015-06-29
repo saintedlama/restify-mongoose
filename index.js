@@ -92,9 +92,26 @@ var execSave = function (model) {
   };
 };
 
-var setLocationHeader = function (req, res) {
+/**
+ * Sets the Location attribute in the response HTTP Header.
+ * Used only in the POST and PATCH requests.
+ *
+ * URL PATTERN:
+ * If PATCH: use the baseUrl + req.url
+ * If POST: use the baseUrl + req.url and append model._id
+ *
+ * @param {Object} req Required. The request object including the req.url parameter
+ * @param {Object} res Required. The response object to set the header attribute at
+ * @param {Boolean} isNewResource Required. Tells if the resource is new (true, POST) or old (false, PATCH)
+ * @param {String} baseUrl Optional. The base URL to prefix with
+ */
+var setLocationHeader = function (req, res, isNewResource, baseUrl) {
   return function (model, cb) {
-    res.header('Location', req.url + '/' + model._id);
+    var url = baseUrl + req.url;
+    if (isNewResource) {
+      url = url + '/' + model._id;
+    }
+    res.header('Location', url);
     cb(null, model);
   };
 };
@@ -273,6 +290,7 @@ Resource.prototype.insert = function (options) {
   var self = this;
 
   options = options || {};
+  options.baseUrl = options.baseUrl || this.options.baseUrl;
   options.beforeSave = options.beforeSave || this.options.beforeSave;
   options.outputFormat = options.outputFormat || this.options.outputFormat;
   options.modelName = options.modelName || this.options.modelName;
@@ -282,7 +300,7 @@ Resource.prototype.insert = function (options) {
     async.waterfall([
       execBeforeSave(req, model, options.beforeSave),
       execSave(model),
-      setLocationHeader(req, res),
+      setLocationHeader(req, res, true, options.baseUrl),
       emitEvent(self, 'insert'),
       sendData(res, options.outputFormat, options.modelName)
     ], next);
@@ -293,6 +311,7 @@ Resource.prototype.update = function (options) {
   var self = this;
 
   options = options || {};
+  options.baseUrl = options.baseUrl || this.options.baseUrl;
   options.beforeSave = options.beforeSave || this.options.beforeSave;
   options.outputFormat = options.outputFormat || this.options.outputFormat;
   options.modelName = options.modelName || this.options.modelName;
@@ -325,7 +344,7 @@ Resource.prototype.update = function (options) {
       async.waterfall([
         execBeforeSave(req, model, options.beforeSave),
         execSave(model),
-        setLocationHeader(req, res),
+        setLocationHeader(req, res, false, options.baseUrl),
         emitEvent(self, 'update'),
         sendData(res, options.outputFormat, options.modelName)
       ], next);

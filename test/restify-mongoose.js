@@ -553,6 +553,9 @@ describe('restify-mongoose', function () {
         .post('/notes')
         .send({title: 'Buy a ukulele'})
         .expect('Content-Type', /json/)
+        .expect(function (res) {
+          res.headers.should.not.have.property("location");
+        })
         .expect(400)
         .expect(/Validation failed/)
         .end(done);
@@ -579,6 +582,32 @@ describe('restify-mongoose', function () {
         })
         .end(done);
     });
+
+    it('should return location URL including baseUrl if baseUrl defined in options', function (done) {
+      request(server({baseUrl: 'http://example.com'}))
+        .post('/notes')
+        .send({title: 'Buy a ukulele', date: new Date()})
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function (res) {
+          res.headers.should.have.property("location");
+          res.headers.location.should.be.equal('http://example.com/notes/' + res.body._id);
+        })
+        .end(done);
+    });
+
+    it('should return location URL without baseUrl if baseUrl missing in options', function (done) {
+      request(server())
+        .post('/notes')
+        .send({title: 'Buy a ukulele', date: new Date()})
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function (res) {
+          res.headers.should.have.property("location");
+          res.headers.location.should.be.equal('/notes/' + res.body._id);
+        })
+        .end(done);
+    });
   });
 
   describe('update', function () {
@@ -601,6 +630,9 @@ describe('restify-mongoose', function () {
           .send({title: 'Buy a ukulele'})
           .expect('Content-Type', /json/)
           .expect(200)
+          .expect(function (res) {
+            res.headers.should.have.property("location");
+          })
           .end(done);
       });
     });
@@ -632,6 +664,7 @@ describe('restify-mongoose', function () {
           .send({title: 'Buy a ukulele'})
           .expect('Content-Type', /json/)
           .expect(function (res) {
+            res.headers.should.have.property("location");
             res.body.content.should.equal(content);
           })
           .expect(200)
@@ -654,6 +687,9 @@ describe('restify-mongoose', function () {
           .patch('/notes/' + note.id)
           .send()
           .expect(400)
+          .expect(function (res) {
+            res.headers.should.not.have.property("location");
+          })
           .end(done);
       });
     });
@@ -666,6 +702,9 @@ describe('restify-mongoose', function () {
         .send({title: 'Buy a guitar'})
         .expect('Content-Type', /json/)
         .expect(404)
+        .expect(function (res) {
+          res.headers.should.not.have.property("location");
+        })
         .end(done);
     });
 
@@ -689,6 +728,9 @@ describe('restify-mongoose', function () {
         request(svr)
           .patch('/notes/' + note.id)
           .send({title: 'Buy a ukulele'})
+          .expect(function (res) {
+            res.headers.should.not.have.property("location");
+          })
           .expect(404)
           .end(done);
       });
@@ -718,10 +760,62 @@ describe('restify-mongoose', function () {
           .patch('/notes/' + note.id)
           .send({title: 'Buy a ukulele'})
           .expect('Content-Type', /json/)
+          .expect(function (res) {
+            res.headers.should.have.property("location");
+            res.headers.location.should.be.equal('/notes/' + note.id);
+          })
           .expect(200)
           .expect(function () {
             eventEmitted.should.be.ok;
             eventArg.should.be.ok;
+          })
+          .end(done);
+      });
+    });
+
+    it('should return location URL including baseUrl if baseUrl defined in options', function (done) {
+      Note.create({
+        title: 'updateThisTitle',
+        date: new Date(),
+        tags: ['a', 'b', 'c'],
+        content: 'Content'
+      }, function (err, note) {
+        if (err) {
+          throw err;
+        }
+
+        request(server({baseUrl: 'http://example.com'}))
+          .patch('/notes/' + note.id)
+          .send({title: 'Buy a ukulele'})
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(function (res) {
+            res.headers.should.have.property("location");
+            res.headers.location.should.be.equal('http://example.com/notes/' + res.body._id);
+          })
+          .end(done);
+      });
+    });
+
+    it('should return location URL without baseUrl if baseUrl missing in options', function (done) {
+      Note.create({
+        title: 'updateThisTitle',
+        date: new Date(),
+        tags: ['a', 'b', 'c'],
+        content: 'Content'
+      }, function (err, note) {
+        if (err) {
+          throw err;
+        }
+
+        request(server())
+          .patch('/notes/' + note.id)
+          .send({title: 'Buy a ukulele'})
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(function (res) {
+            res.headers.should.have.property("location");
+            res.headers.location.should.be.equal('/notes/' + res.body._id);
           })
           .end(done);
       });
