@@ -140,7 +140,8 @@ these Link header values instead of constructing your own URLs.
     link:
     <http://example.com/notes?p=0>; rel="first",
     <http://example.com/notes?p=1>; rel="prev",
-    <http://example.com/notes/?p=3>; rel="next"
+    <http://example.com/notes/?p=3>; rel="next",
+    <http://example.com/notes/?p=4>; rel="last"
 
 _Linebreak is included for readability._
 
