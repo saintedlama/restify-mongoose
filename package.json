@@ -18,7 +18,8 @@
   "main": "index.js",
   "scripts": {
     "test": "NODE_ENV=test mocha -R spec test/",
-    "cover": "NODE_ENV=test istanbul cover ./node_modules/mocha/bin/_mocha --report lcov -- -R spec"
+    "cover": "NODE_ENV=test istanbul cover ./node_modules/mocha/bin/_mocha --report lcov -- -R spec",
+    "lint": "jshint **.js"
   },
   "keywords": [
     "restify",
@@ -33,10 +34,11 @@
     "restify": "~3.0.3"
   },
   "devDependencies": {
+    "istanbul": "^0.3.16",
+    "jshint": "^2.8.0",
     "mocha": "~2.2.5",
     "should": "~7.0.1",
-    "supertest": "~1.0.1",
-    "istanbul": "^0.3.16"
+    "supertest": "~1.0.1"
   },
   "bugs": "https://github.com/saintedlama/restify-mongoose/issues",
   "repository": {

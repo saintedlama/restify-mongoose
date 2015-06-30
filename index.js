@@ -25,7 +25,7 @@ var emitEvent = function (self, event) {
     if (cb) {
       cb(undefined, model);
     }
-  }
+  };
 };
 
 var sendData = function (res, format, modelName, status) {
@@ -39,7 +39,7 @@ var sendData = function (res, format, modelName, status) {
       res.send(status, model);
     }
     cb(undefined, model);
-  }
+  };
 };
 
 var execQueryWithTotCount = function (query, countQuery) {
@@ -61,14 +61,14 @@ var execQueryWithTotCount = function (query, countQuery) {
         }
       });
 
-  }
-}
+  };
+};
 
 var execQuery = function (query) {
   return function (cb) {
     query.exec(cb);
-  }
-}
+  };
+};
 
 var execBeforeSave = function (req, model, beforeSave) {
   if (!beforeSave) {
@@ -84,10 +84,12 @@ var execBeforeSave = function (req, model, beforeSave) {
 var execSave = function (model) {
   return function (cb) {
     model.save(function (err, model) {
-      if (err)
+      if (err) {
         return cb(restifyError(err));
-      else
+      }
+      else {
         cb(null, model);
+      }
     });
   };
 };
@@ -123,7 +125,7 @@ var buildProjections = function (req, projection) {
     };
 
     async.map(models, iterator, cb);
-  }
+  };
 };
 
 var buildProjection = function (req, projection) {
@@ -133,7 +135,7 @@ var buildProjection = function (req, projection) {
     }
 
     projection(req, model, cb);
-  }
+  };
 };
 
 var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
@@ -173,7 +175,7 @@ var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
 
     cb(null, models, totalCount);
   };
-}
+};
 
 var applyTotalCount = function (res) {
   return function applyTotalCountInner(models, totalCount, cb) {
@@ -181,7 +183,7 @@ var applyTotalCount = function (res) {
 
     cb(null, models);
   };
-}
+};
 
 var Resource = function (Model, options) {
   EventEmitter.call(this);
@@ -243,8 +245,7 @@ Resource.prototype.query = function (options) {
     var page = Number(req.query.p) >= 0 ? Number(req.query.p) : 0;
 
     // pageSize parameter in queryString overrides one in the code. Must be number between [1-100]
-    options.pageSize = Number(req.query.pageSize) > 0 && Number(req.query.pageSize) <= 100
-      ? Number(req.query.pageSize) : options.pageSize;
+    options.pageSize = Number(req.query.pageSize) > 0 && Number(req.query.pageSize) <= 100 ? Number(req.query.pageSize) : options.pageSize;
 
     query.skip(options.pageSize * page);
     query.limit(options.pageSize + 1);
