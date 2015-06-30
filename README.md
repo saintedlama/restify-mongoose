@@ -259,7 +259,7 @@ Also you can specify a custom model name like this:
 ```javascript
 var users = restifyMongoose(User, {outputFormat: 'json-api', modelName: 'admins'});
 users.serve('/users', restifyServer);
-``
+```
 
 
 ## Changelog
