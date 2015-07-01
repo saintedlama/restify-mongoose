@@ -245,14 +245,14 @@ Resource.prototype.query = function (options) {
     var page = Number(req.query.p) >= 0 ? Number(req.query.p) : 0;
 
     // pageSize parameter in queryString overrides one in the code. Must be number between [1-100]
-    options.pageSize = Number(req.query.pageSize) > 0 && Number(req.query.pageSize) <= 100 ? Number(req.query.pageSize) : options.pageSize;
+    var pageSize = Number(req.query.pageSize) > 0 && Number(req.query.pageSize) <= 100 ? Number(req.query.pageSize) : options.pageSize;
 
-    query.skip(options.pageSize * page);
-    query.limit(options.pageSize + 1);
+    query.skip(pageSize * page);
+    query.limit(pageSize + 1);
 
     async.waterfall([
       execQueryWithTotCount(query, countQuery),
-      applyPageLinks(req, res, page, options.pageSize, options.baseUrl),
+      applyPageLinks(req, res, page, pageSize, options.baseUrl),
       applyTotalCount(res),
       buildProjections(req, options.projection),
       emitEvent(self, 'query'),
