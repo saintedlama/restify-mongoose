@@ -112,6 +112,57 @@ To filter a notes resource by title to match term "first" append the __q__ query
 
     http://localhost:3000/notes?q={"title":"first"}
 
+## Paginate
+Requests that return multiple items in `query` will be paginated to 100 items by default. You can set the `pageSize`
+(number min=1, max=100) by adding it to the options.
+
+```javascript
+var options = {
+	pageSize: 2
+};
+
+var notes = restifyMongoose(Note, options);
+```
+
+or as query string parameter `pageSize` (which will have the presedence)
+
+    http://localhost:3000/notes?pageSize=2
+
+
+You can specify further pages with the __p__ parameter and a page number.
+
+    http://localhost:3000/notes?p=1
+
+### Link Header
+The pagination info is included in [the Link header](http://tools.ietf.org/html/rfc5988). It is important to follow
+these Link header values instead of constructing your own URLs.
+
+    link:
+    <http://example.com/notes?p=0>; rel="first",
+    <http://example.com/notes?p=1>; rel="prev",
+    <http://example.com/notes/?p=3>; rel="next",
+    <http://example.com/notes/?p=4>; rel="last"
+
+_Linebreak is included for readability._
+
+You can set the `baseUrl` by adding it to the options.
+
+```javascript
+var options = {
+	baseUrl: 'http://example.com'
+};
+```
+
+The possible `rel` values are:
+
+* ***next*** - Shows the URL of the immediate next page of results.
+* ***last*** - Shows the URL of the last page of results.
+* ***first*** - Shows the URL of the first page of results.
+* ***prev*** - Shows the URL of the immediate previous page of results.
+
+### Total Count Header
+The total number of results/resources returned in `query` is sent in the `X-Total-Count Header` and is not affected by
+pagination (setting `pageSize` and __p__ parameter). It does take in account filter and query parameter ( __q__ ).
 
 ## Sort
 Sort parameters are passed by query string parameter __sort__.
@@ -130,13 +181,13 @@ Select fields are passed directly to [mongoose select query function](http://mon
 To select only date the field of a notes resource append the __select__ query parameter to the URL:
 
     http://localhost:3000/notes?select=date
-    
+
 ## Filter
 Results can be filtered with a function, which is set in the options object of the constructor or on the `query` and `detail` function.
 
 The function takes two parameters: the request object and the response object. The return value of the function is a query that is passed directly to the [mongoose where query function](http://mongoosejs.com/docs/api.html#query_Query-where).
 
-For instance, you can use a filter to display only results for a particular user: 
+For instance, you can use a filter to display only results for a particular user:
 
 ```javascript
 var filterUser = function(req, res) {
@@ -208,7 +259,7 @@ Also you can specify a custom model name like this:
 ```javascript
 var users = restifyMongoose(User, {outputFormat: 'json-api', modelName: 'admins'});
 users.serve('/users', restifyServer);
-``
+```
 
 
 ## Changelog
@@ -219,7 +270,7 @@ users.serve('/users', restifyServer);
 * Added `beforeSave` functionality to the **insert** and **update** operations.
 * Added coverage script to package.json
 * The insert and update operations now use aync.waterfall
-* The server test helper has an optional parameter which will set or not set default routes 
+* The server test helper has an optional parameter which will set or not set default routes
 
 ### 0.2.1
 * Updates to restify 2.8.x
@@ -229,3 +280,18 @@ users.serve('/users', restifyServer);
 
 ### 0.2.2
 * The `beforeSave` option can now be included in the options passed to the `restifyMongoose` constructor.
+
+### 0.3.0
+* Added total count of resources for `query` by adding `X-Total-Count header`
+* Added `last` relation in Link Header for showing URL to last page with results
+* Added `pageSize` as query string parameter in order to set page size for pagination in the URL itself
+* Fixed bug when returning Location URL for `PATCH`, model._id was duplicated
+* Changed status code to `201 CREATED` for successful `POST` requests
+* Updated runtime and dev dependencies to latest versions
+    * Updated to async 1.0.0
+    * Updated to mongoose 4.0.6
+    * Updated to restify 3.0.3
+    * Updated to mocha 2.2.5
+    * Updated to should 7.0.1
+    * Updated to supertest 1.0.1
+    * Updated to istanbul 0.3.16
