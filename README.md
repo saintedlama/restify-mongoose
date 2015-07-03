@@ -1,4 +1,6 @@
 # Restify-Mongoose
+[![NPM](https://nodei.co/npm/restify-mongoose.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/restify-mongoose/)
+
 [![Build Status](https://travis-ci.org/saintedlama/restify-mongoose.png?branch=master)](https://travis-ci.org/saintedlama/restify-mongoose)
 [![Coverage Status](https://coveralls.io/repos/saintedlama/restify-mongoose/badge.png?branch=master)](https://coveralls.io/r/saintedlama/restify-mongoose?branch=master)
 [![Dependencies Status](https://david-dm.org/saintedlama/restify-mongoose.svg)](https://david-dm.org/saintedlama/restify-mongoose)
