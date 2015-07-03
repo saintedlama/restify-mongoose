@@ -260,38 +260,3 @@ Also you can specify a custom model name like this:
 var users = restifyMongoose(User, {outputFormat: 'json-api', modelName: 'admins'});
 users.serve('/users', restifyServer);
 ```
-
-
-## Changelog
-
-### 0.2.0
-
-* Added `before` and `after` options to the `serve` function which pass arrays of handlers to the restify handler chain.
-* Added `beforeSave` functionality to the **insert** and **update** operations.
-* Added coverage script to package.json
-* The insert and update operations now use aync.waterfall
-* The server test helper has an optional parameter which will set or not set default routes
-
-### 0.2.1
-* Updates to restify 2.8.x
-* Updates to async 0.9.x
-* Improved the error message for mongoose validation errors
-* Code cleanup
-
-### 0.2.2
-* The `beforeSave` option can now be included in the options passed to the `restifyMongoose` constructor.
-
-### 0.3.0
-* Added total count of resources for `query` by adding `X-Total-Count header`
-* Added `last` relation in Link Header for showing URL to last page with results
-* Added `pageSize` as query string parameter in order to set page size for pagination in the URL itself
-* Fixed bug when returning Location URL for `PATCH`, model._id was duplicated
-* Changed status code to `201 CREATED` for successful `POST` requests
-* Updated runtime and dev dependencies to latest versions
-    * Updated to async 1.0.0
-    * Updated to mongoose 4.0.6
-    * Updated to restify 3.0.3
-    * Updated to mocha 2.2.5
-    * Updated to should 7.0.1
-    * Updated to supertest 1.0.1
-    * Updated to istanbul 0.3.16
