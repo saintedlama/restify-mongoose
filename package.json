@@ -13,6 +13,10 @@
       "name": "Dave Jensen",
       "email": "david@jensen47.com",
       "url": "http://build47.com"
+    },
+    {
+      "name": "Ismar Slomic",
+      "email": "ismar@slomic.no"
     }
   ],
   "main": "index.js",
