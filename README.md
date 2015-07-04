@@ -266,4 +266,4 @@ users.serve('/users', restifyServer);
 ```
 
 # Contribute
-Contribution welcome! Red the [contribution guideline](contributing.md) first.
+Contribution welcome! Read the [contribution guideline](contributing.md) first.
