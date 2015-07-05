@@ -22,8 +22,9 @@
   "main": "index.js",
   "scripts": {
     "test": "NODE_ENV=test mocha -R spec test/",
-    "cover": "NODE_ENV=test istanbul cover ./node_modules/mocha/bin/_mocha --report lcov -- -R spec",
-    "lint": "jshint **.js"
+    "cover": "NODE_ENV=test istanbul cover ./node_modules/mocha/bin/_mocha --report html -- -R spec",
+    "lint": "jshint **.js",
+    "release": "npm-release"
   },
   "keywords": [
     "restify",
@@ -41,6 +42,7 @@
     "istanbul": "^0.3.17",
     "jshint": "^2.8.0",
     "mocha": "~2.2.5",
+    "npm-release": "0.0.4-3",
     "should": "~7.0.1",
     "supertest": "~1.0.1"
   },

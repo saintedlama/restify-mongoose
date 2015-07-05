@@ -2,10 +2,6 @@
 
 ## Install dependencies
     npm install
-    npm install -g npm-release
-    npm install -g istanbul
-    npm install coveralls
-    npm install mocha-lcov-reporter
 
 ## Test
     npm test
@@ -17,14 +13,14 @@
     npm run lint
 
 ## Release
-Use the `npm-release` module as described below. It will bump version in `package.json` and release new version in git and npm.
+Restify-Mongoose uses the module `npm-release` as described below for releases.
+It will bump version in `package.json` and release new version to git and npm.
 
 Remember to update [CHANGELOG.md](CHANGELOG.md) **before** release.
 
-    npm-release [<newversion> | major | minor | patch | build] -m "<release message>"
+    npm run release -- [<newversion> | major | minor | patch | build] -m "<release message>"
 
-
-Command above enforce the use of [semantic versions](http://semver.org/) when releasing:
+The command above enforce the use of [semantic versions](http://semver.org/) when releasing:
 
 Given a version number MAJOR.MINOR.PATCH, increment the:
 
