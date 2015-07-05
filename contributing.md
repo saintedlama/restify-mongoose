@@ -1,4 +1,10 @@
 # Contribution Guideline
+Contributions are welcome. Before sending a pull request
+
+* Conform to the projects code style: 2 spaces for indention. See .editorconfig
+* Add tests for what you changed/added/fixed.
+* Don't let code coverage drop - run `npm run cover` to see current code coverage.
+* Update README.md to document your changes.
 
 ## Install dependencies
     npm install
