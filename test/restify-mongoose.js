@@ -6,6 +6,7 @@ var mongoose = require('mongoose');
 var restifyMongoose = require('../index');
 var server = require('./server');
 var Note = require('./note');
+var Author = require('./author');
 var mongoTest = require('./util/mongotest');
 
 describe('restify-mongoose', function () {
@@ -19,8 +20,12 @@ describe('restify-mongoose', function () {
 
   describe('query', function () {
     before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    before(mongoTest.populate(Author,
+      // using a known _id to simplify testing populate
+      {name: 'Test Testerson', '_id': '55e077e05e207b5447171f6e'}
+    ));
     before(mongoTest.populate(Note,
-      {title: 'first', date: new Date()},
+      {title: 'first', date: new Date(), author: '55e077e05e207b5447171f6e'},
       {title: 'second', date: new Date()},
       {title: 'third', date: new Date()}
     ));
@@ -46,6 +51,18 @@ describe('restify-mongoose', function () {
         .expect(function (res) {
           res.body.should.have.length(1);
           res.body[0].title.should.equal('first');
+        })
+        .end(done);
+    });
+
+    it('should populate resources with referenced models according to populate query param', function (done) {
+      request(server())
+        .get('/notes?populate=author')
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function (res) {
+          res.body.should.have.length(3);
+          res.body[0].author.name.should.equal('Test Testerson');
         })
         .end(done);
     });
@@ -494,6 +511,34 @@ describe('restify-mongoose', function () {
           .get('/notes/' + note.id)
           .expect(404)
           .end(done);
+      });
+    });
+
+    it('should populate resources with referenced models according to populate query param', function (done) {
+      Author.create({
+        name: 'Test Testerson'
+      }, function(err, author) {
+        if (err) {
+          throw err;
+        }
+
+        Note.create({
+          title: 'detailtitle',
+          date: new Date(),
+          author: author.id
+        }, function (err, note) {
+          if (err) {
+            throw err;
+          }
+
+          request(server())
+            .get('/notes/' + note.id + '?populate=author')
+            .expect(200)
+            .expect(function (res) {
+              res.body.author.name.should.equal('Test Testerson');
+            })
+            .end(done);
+        });
       });
     });
 
