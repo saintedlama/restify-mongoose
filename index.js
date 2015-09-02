@@ -138,6 +138,10 @@ var buildProjection = function (req, projection) {
   };
 };
 
+var parsePopulateParam = function(populate) {
+  return populate.replace(',', ' ');
+};
+
 var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
   function makeLink(page, rel) {
     var path = url.parse(req.url, true);
@@ -237,10 +241,15 @@ Resource.prototype.query = function (options) {
       query = query.select(req.query.select);
     }
 
+    if (req.query.populate) {
+      query = query.populate(parsePopulateParam(req.query.populate));
+    }
+
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
       countQuery = countQuery.where(self.options.filter(req, res));
     }
+
 
     var page = Number(req.query.p) >= 0 ? Number(req.query.p) : 0;
 
@@ -273,6 +282,10 @@ Resource.prototype.detail = function (options) {
     find[self.options.queryString] = req.params.id;
 
     var query = self.Model.findOne(find);
+
+    if (req.query.populate) {
+      query = query.populate(parsePopulateParam(req.query.populate));
+    }
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
