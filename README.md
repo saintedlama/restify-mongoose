@@ -288,7 +288,7 @@ server.get('/notes/:id', notes.detail({populate: 'author'}))
 ```
 
 ### Populating multiple fields
-Multipe referenced documents can be populated by using a comma-delimited list of the desired fields in any of the three methods above.
+Multiple referenced documents can be populated by using a comma-delimited list of the desired fields in any of the three methods above.
 ```javascript
 // e.g.
 var notes = restifyMongoose(Note, {populate: 'author,contributors'});
