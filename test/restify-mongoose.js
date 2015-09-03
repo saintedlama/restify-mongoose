@@ -22,10 +22,17 @@ describe('restify-mongoose', function () {
     before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
     before(mongoTest.populate(Author,
       // using a known _id to simplify testing populate
-      {name: 'Test Testerson', '_id': '55e077e05e207b5447171f6e'}
+      {name: 'Test Testerson', '_id': '55e077e05e207b5447171f6e'},
+      {name: 'Conny Contributor', '_id': '55e077e05e207b5447171f6f'},
+      {name: 'Conrad Contributor', '_id': '55e077e05e207b5447171f6g'}
     ));
     before(mongoTest.populate(Note,
-      {title: 'first', date: new Date(), author: '55e077e05e207b5447171f6e'},
+      {
+        title: 'first',
+        date: new Date(),
+        author: '55e077e05e207b5447171f6e',
+        contributors: ['55e077e05e207b5447171f6f', '55e077e05e207b5447171f6g']
+      },
       {title: 'second', date: new Date()},
       {title: 'third', date: new Date()}
     ));
@@ -58,6 +65,46 @@ describe('restify-mongoose', function () {
     it('should populate resources with referenced models according to populate query param', function (done) {
       request(server())
         .get('/notes?populate=author')
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function (res) {
+          res.body.should.have.length(3);
+          res.body[0].author.name.should.equal('Test Testerson');
+        })
+        .end(done);
+    });
+
+    it('should populate resources with multiple referenced models according to comma-delimited populate query param', function (done) {
+      request(server())
+        .get('/notes?populate=author,contributors')
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function (res) {
+          res.body.should.have.length(3);
+          res.body[0].contributors.should.have.length(2);
+          res.body[0].contributors[0].name.should.equal('Conny Contributor');
+        })
+        .end(done);
+    });
+
+    it('should populate resources with referenced models according to populate resource option', function (done) {
+      request(server({populate: 'author'}))
+        .get('/notes')
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function (res) {
+          res.body.should.have.length(3);
+          res.body[0].author.name.should.equal('Test Testerson');
+        })
+        .end(done);
+    });
+
+    it('should populate resources with referenced models according to populate query method option', function (done) {
+      var notes = restifyMongoose(Note);
+      var svr = server(null, false);
+      svr.get('/notes', notes.query({populate: 'author'}));
+      request(svr)
+        .get('/notes')
         .expect('Content-Type', /json/)
         .expect(200)
         .expect(function (res) {
@@ -533,6 +580,38 @@ describe('restify-mongoose', function () {
 
           request(server())
             .get('/notes/' + note.id + '?populate=author')
+            .expect(200)
+            .expect(function (res) {
+              res.body.author.name.should.equal('Test Testerson');
+            })
+            .end(done);
+        });
+      });
+    });
+
+    it('should populate resources with referenced models according to populate detail method option', function (done) {
+      var notes = restifyMongoose(Note);
+      var svr = server(null, false);
+      svr.get('/notes/:id', notes.detail({populate: 'author'}));
+
+      Author.create({
+        name: 'Test Testerson'
+      }, function(err, author) {
+        if (err) {
+          throw err;
+        }
+
+        Note.create({
+          title: 'detailtitle',
+          date: new Date(),
+          author: author.id
+        }, function (err, note) {
+          if (err) {
+            throw err;
+          }
+
+          request(svr)
+            .get('/notes/' + note.id)
             .expect(200)
             .expect(function (res) {
               res.body.author.name.should.equal('Test Testerson');

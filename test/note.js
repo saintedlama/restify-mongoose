@@ -8,7 +8,11 @@ var NoteSchema = new mongoose.Schema({
   author : {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'author'
-  }
+  },
+  contributors : [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'author'
+  }]
 });
 
 var Note = mongoose.model('notes', NoteSchema);
