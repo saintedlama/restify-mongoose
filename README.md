@@ -265,5 +265,27 @@ var users = restifyMongoose(User, {outputFormat: 'json-api', modelName: 'admins'
 users.serve('/users', restifyServer);
 ```
 
+## Populating referenced documents
+
+The returned results can use mongoose's "populate" query modifier to populated referenced documents within models.
+
+Referenced documents can be populated in three ways:
+
+### query parameter
+Adding `populate=[referenced_field]` to the query string will populate the referenced_field, if it exists.
+
+### Resource option
+```javascript
+// e.g.
+var notes = restifyMongoose(Note, {populate: 'author'});
+```
+
+### query / detail method options
+```javascript
+// e.g.
+server.get('/notes', notes.query({populate: 'author'}))
+server.get('/notes/:id', notes.detail({populate: 'author,contributors'}))
+```
+
 # Contribute
 Contribution welcome! Read the [contribution guideline](contributing.md) first.
