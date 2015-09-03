@@ -271,20 +271,27 @@ The returned results can use mongoose's "populate" query modifier to populated r
 
 Referenced documents can be populated in three ways:
 
-### query parameter
-Adding `populate=[referenced_field]` to the query string will populate the referenced_field, if it exists.
+#### query parameter
+Adding `populate=[referenced_field]` to the query string will populate the `referenced_field`, if it exists.
 
-### Resource option
+#### Resource option
 ```javascript
 // e.g.
 var notes = restifyMongoose(Note, {populate: 'author'});
 ```
 
-### query / detail method options
+#### query / detail method options
 ```javascript
 // e.g.
 server.get('/notes', notes.query({populate: 'author'}))
-server.get('/notes/:id', notes.detail({populate: 'author,contributors'}))
+server.get('/notes/:id', notes.detail({populate: 'author'}))
+```
+
+### Populating multiple fields
+Multipe referenced documents can be populated by using a comma-delimited list of the desired fields in any of the three methods above.
+```javascript
+// e.g.
+var notes = restifyMongoose(Note, {populate: 'author,contributors'});
 ```
 
 # Contribute
