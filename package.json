@@ -35,16 +35,16 @@
   "license": "BSD-2-Clause",
   "dependencies": {
     "async": "~1.0.0",
-    "mongoose": "~4.0.6",
-    "restify": "~3.0.3"
+    "mongoose": "~4.1.6",
+    "restify": "~4.0.2"
   },
   "devDependencies": {
-    "istanbul": "^0.3.17",
+    "istanbul": "^0.3.19",
     "jshint": "^2.8.0",
-    "mocha": "~2.2.5",
-    "npm-release": "0.0.4-3",
-    "should": "~7.0.1",
-    "supertest": "~1.0.1"
+    "mocha": "~2.3.2",
+    "npm-release": "0.0.4",
+    "should": "~7.1.0",
+    "supertest": "~1.1.0"
   },
   "bugs": "https://github.com/saintedlama/restify-mongoose/issues",
   "repository": {
