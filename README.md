@@ -107,6 +107,14 @@ Maps urls
 * DELETE '/api/notes/:id' to `remove` function
 * PATCH '/api/notes/:id' to `update` function
 
+You can also pass an options object to the `serve` method to attach handlers before and after the request.
+For example, to use [restify-jwt](https://github.com/auth0/express-jwt):
+
+```javascript
+// Serve resource notes with quick mapping with JWT auth
+restifyMongoose(models.Note).serve('/api/notes', server, { before: jwt({secret: 'some-secret'}) } );
+```
+
 ## Queries
 Query parameters are passed by query string parameter __q__.
 
