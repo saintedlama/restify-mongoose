@@ -62,6 +62,18 @@ describe('restify-mongoose', function () {
         .end(done);
     });
 
+    it('should not populate resources with referenced models by default', function (done) {
+      request(server())
+          .get('/notes')
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(function (res) {
+            res.body.should.have.length(3);
+            res.body[0].author.should.be.undef;
+          })
+          .end(done);
+    });
+
     it('should populate resources with referenced models according to populate query param', function (done) {
       request(server())
         .get('/notes?populate=author')
