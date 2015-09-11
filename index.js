@@ -138,6 +138,10 @@ var buildProjection = function (req, projection) {
   };
 };
 
+var parsePopulateParam = function(populate) {
+  return populate.replace(/,/g, ' ');
+};
+
 var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
   function makeLink(page, rel) {
     var path = url.parse(req.url, true);
@@ -214,10 +218,12 @@ Resource.prototype.query = function (options) {
   options.projection = options.projection || this.options.listProjection;
   options.outputFormat = options.outputFormat || this.options.outputFormat;
   options.modelName = options.modelName || this.options.modelName;
+  options.populate = options.populate || this.options.populate;
 
   return function (req, res, next) {
     var query = self.Model.find({});
     var countQuery = self.Model.find({});
+    var populate = req.query.populate || options.populate;
 
     if (req.query.q) {
       try {
@@ -237,10 +243,15 @@ Resource.prototype.query = function (options) {
       query = query.select(req.query.select);
     }
 
+    if (populate) {
+      query = query.populate(parsePopulateParam(populate));
+    }
+
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
       countQuery = countQuery.where(self.options.filter(req, res));
     }
+
 
     var page = Number(req.query.p) >= 0 ? Number(req.query.p) : 0;
 
@@ -268,11 +279,18 @@ Resource.prototype.detail = function (options) {
   options.projection = options.projection || this.options.detailProjection;
   options.outputFormat = options.outputFormat || this.options.outputFormat;
   options.modelName = options.modelName || this.options.modelName;
+  options.populate = options.populate || this.options.populate;
+
   return function (req, res, next) {
     var find = {};
     find[self.options.queryString] = req.params.id;
 
     var query = self.Model.findOne(find);
+
+    var populate = req.query.populate || options.populate;
+    if (populate) {
+      query = query.populate(parsePopulateParam(populate));
+    }
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
