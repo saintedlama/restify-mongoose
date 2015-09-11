@@ -1,3 +1,24 @@
+<a name"0.2.6"></a>
+### 0.2.6 (2015-09-11)
+
+#### Features
+* **populate:** Added populating referenced documents. Thanks to @jmwohl
+* **option:** Added documentation about option sent to serve method. Thanks to @mancvso
+* **Dependency upgrades:** Updated runtime and dev dependencies to latest versions
+  * Updated to mongoose 4.1.6
+  * Updated to restify 4.0.2
+  * Updated to mocha 2.3.2
+  * Updated to npm-release 0.0.4
+  * Updated to should 7.1.0
+  * Updated to supertest 1.1.0
+  * Updated to istanbul 0.3.19
+
+#### Breaking Changes
+* None
+
+#### Bug Fixes
+* None
+
 <a name"0.2.5"></a>
 ### 0.2.5 (2015-07-02)
 
