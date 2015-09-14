@@ -34,15 +34,15 @@
   ],
   "license": "BSD-2-Clause",
   "dependencies": {
-    "async": "~1.0.0",
+    "async": "~1.4.2",
     "mongoose": "~4.1.6",
     "restify": "~4.0.2"
   },
   "devDependencies": {
-    "istanbul": "^0.3.19",
+    "istanbul": "^0.3.20",
     "jshint": "^2.8.0",
     "mocha": "~2.3.2",
-    "npm-release": "0.0.4",
+    "npm-release": "0.0.4-3",
     "should": "~7.1.0",
     "supertest": "~1.1.0"
   },
