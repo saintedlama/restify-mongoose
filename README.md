@@ -188,11 +188,26 @@ To sort a notes resource by title descending append the __sort__ query parameter
 ## Select Fields
 To restrict selected columns you can pass a query string parameter __select__.
 
-Select fields are passed directly to [mongoose select query function](http://mongoosejs.com/docs/api.html#query_Query-select).
+Select fields can be separated by comma or space. They will be passed to [mongoose select query function](http://mongoosejs.com/docs/api.html#query_Query-select).
 
-To select only date the field of a notes resource append the __select__ query parameter to the URL:
+To select only title and date the fields of a notes resource append the __select__ query parameter to the URL:
 
-    http://localhost:3000/notes?select=date
+    http://localhost:3000/notes?select=title,date
+
+You can also define select fields in the options object. This will make the the __select__ query parameter be ignored.
+
+Using in the constructor:
+```javascript
+var notes = restifyMongoose(Note, {select: 'title'});
+notes.serve('/notes', restifyServer);
+```
+
+Using for query or detail methods:
+```javascript
+var notes = restifyMongoose(Note);
+note.detail({select: 'title,date,tags'});
+note.query({select: 'title date'});
+```
 
 ## Filter
 Results can be filtered with a function, which is set in the options object of the constructor or on the `query` and `detail` function.

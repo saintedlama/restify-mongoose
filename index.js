@@ -138,7 +138,7 @@ var buildProjection = function (req, projection) {
   };
 };
 
-var parsePopulateParam = function(populate) {
+var parseCommaParam = function(populate) {
   return populate.replace(/,/g, ' ');
 };
 
@@ -189,6 +189,21 @@ var applyTotalCount = function (res) {
   };
 };
 
+var applySelect = function(query, options, req){
+  //options select overrides request select
+  var select = options.select || req.query.select;
+  if(select){
+    query = query.select(parseCommaParam(select));
+  }
+};
+
+var applyPopulate = function(query, options, req){
+  var populate = req.query.populate || options.populate;
+  if (populate) {
+    query = query.populate(parseCommaParam(populate));
+  }
+};
+
 var Resource = function (Model, options) {
   EventEmitter.call(this);
   this.Model = Model;
@@ -219,11 +234,11 @@ Resource.prototype.query = function (options) {
   options.outputFormat = options.outputFormat || this.options.outputFormat;
   options.modelName = options.modelName || this.options.modelName;
   options.populate = options.populate || this.options.populate;
+  options.select = options.select || this.options.select;
 
   return function (req, res, next) {
     var query = self.Model.find({});
     var countQuery = self.Model.find({});
-    var populate = req.query.populate || options.populate;
 
     if (req.query.q) {
       try {
@@ -239,13 +254,8 @@ Resource.prototype.query = function (options) {
       query = query.sort(req.query.sort);
     }
 
-    if (req.query.select) {
-      query = query.select(req.query.select);
-    }
-
-    if (populate) {
-      query = query.populate(parsePopulateParam(populate));
-    }
+    applySelect(query, options, req);
+    applyPopulate(query, options, req);
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
@@ -280,6 +290,7 @@ Resource.prototype.detail = function (options) {
   options.outputFormat = options.outputFormat || this.options.outputFormat;
   options.modelName = options.modelName || this.options.modelName;
   options.populate = options.populate || this.options.populate;
+  options.select = options.select || this.options.select;
 
   return function (req, res, next) {
     var find = {};
@@ -287,10 +298,8 @@ Resource.prototype.detail = function (options) {
 
     var query = self.Model.findOne(find);
 
-    var populate = req.query.populate || options.populate;
-    if (populate) {
-      query = query.populate(parsePopulateParam(populate));
-    }
+    applySelect(query, options, req);
+    applyPopulate(query, options, req);
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));

@@ -178,6 +178,22 @@ describe('restify-mongoose', function () {
         .end(done);
     });
 
+    it('should select fields of notes according to options', function (done) {
+      request(server({select: "title"}))
+        .get('/notes?select=date')
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function (res) {
+          res.body[0].should.have.property('title');
+          res.body[0].should.not.have.property('date');
+          res.body[1].should.have.property('title');
+          res.body[1].should.not.have.property('date');
+          res.body[2].should.have.property('title');
+          res.body[2].should.not.have.property('date');
+        })
+        .end(done);
+    });
+
     it('should emit event after querying notes', function (done) {
       var svr = server();
 
@@ -534,6 +550,31 @@ describe('restify-mongoose', function () {
           .expect(200)
           .expect(function (res) {
             res.body.title.should.equal('detailtitle');
+          })
+          .end(done);
+      });
+    });
+
+    it('should select detail note according to options', function (done) {
+      Note.create({
+        title: 'detailtitleselect',
+        date: new Date(),
+        tags: ['a', 'b', 'c'],
+        content: 'Content Select'
+      }, function (err, note) {
+        if (err) {
+          throw err;
+        }
+
+        request(server({select: "title content"}))
+          .get('/notes/' + note.id)
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .expect(function (res) {
+            res.body.title.should.equal('detailtitleselect');
+            res.body.content.should.equal('Content Select');
+            res.body.should.not.have.property('date');
+            res.body.should.not.have.property('tags');
           })
           .end(done);
       });
