@@ -179,11 +179,24 @@ pagination (setting `pageSize` and __p__ parameter). It does take in account fil
 ## Sort
 Sort parameters are passed by query string parameter __sort__.
 
-Sort parameters are passed directly to [mongoose sort query function](http://mongoosejs.com/docs/api.html#query_Query-sort).
+Sort parameters can be separated by comma or space. They will be passed directly to [mongoose sort query function](http://mongoosejs.com/docs/api.html#query_Query-sort).
 
 To sort a notes resource by title descending append the __sort__ query parameter to the URL:
 
     http://localhost:3000/notes?sort=-title
+
+You can also define a default sort in the options object. This option will by ignored if a __sort__ query parameter exists.
+
+Using in the constructor:
+```javascript
+var notes = restifyMongoose(Note, {sort: '-title'});
+notes.serve('/notes', restifyServer);
+```
+
+Using for query or detail methods:
+```javascript
+var notes = restifyMongoose(Note);
+note.query({sort: '-title'});
 
 ## Select Fields
 To restrict selected columns you can pass a query string parameter __select__.

@@ -32,5 +32,4 @@ module.exports = function(options, routes) {
   server.notes = notes;
 
   return server;
-}
-
+};
