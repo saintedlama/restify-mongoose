@@ -165,6 +165,32 @@ describe('restify-mongoose', function () {
         .end(done);
     });
 
+    it('should sort notes according to options', function (done) {
+      request(server({'sort':'-title'}))
+        .get('/notes')
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function (res) {
+          res.body[0].title.should.equal('third');
+          res.body[1].title.should.equal('second');
+          res.body[2].title.should.equal('first');
+        })
+        .end(done);
+    });
+
+    it('should sort notes according to query, overriding options', function (done) {
+      request(server({'sort':'title'}))
+        .get('/notes?sort=-title')
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function (res) {
+          res.body[0].title.should.equal('third');
+          res.body[1].title.should.equal('second');
+          res.body[2].title.should.equal('first');
+        })
+        .end(done);
+    });
+
     it('should select fields of notes', function (done) {
       request(server())
         .get('/notes?select=date')
@@ -330,7 +356,7 @@ describe('restify-mongoose', function () {
             res.body[1].title.should.equal('second');
           })
           .end(done);
-      }
+      };
     }
 
     function assertTotalCount(expectedResult, options, queryString) {
@@ -343,7 +369,7 @@ describe('restify-mongoose', function () {
             res.headers['x-total-count'].should.be.exactly(expectedResult);
           })
           .end(done);
-      }
+      };
     }
 
     it('should respond with first page given no page parameter', assertFirstPage(''));

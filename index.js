@@ -138,8 +138,8 @@ var buildProjection = function (req, projection) {
   };
 };
 
-var parseCommaParam = function(populate) {
-  return populate.replace(/,/g, ' ');
+var parseCommaParam = function(commaParam) {
+  return commaParam.replace(/,/g, ' ');
 };
 
 var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
@@ -204,6 +204,13 @@ var applyPopulate = function(query, options, req){
   }
 };
 
+var applySort = function(query, options, req){
+  var sort = req.query.sort || options.sort;
+  if (sort) {
+    query = query.sort(parseCommaParam(sort));
+  }
+};
+
 var Resource = function (Model, options) {
   EventEmitter.call(this);
   this.Model = Model;
@@ -235,6 +242,7 @@ Resource.prototype.query = function (options) {
   options.modelName = options.modelName || this.options.modelName;
   options.populate = options.populate || this.options.populate;
   options.select = options.select || this.options.select;
+  options.sort = options.sort || this.options.sort;
 
   return function (req, res, next) {
     var query = self.Model.find({});
@@ -250,12 +258,9 @@ Resource.prototype.query = function (options) {
       }
     }
 
-    if (req.query.sort) {
-      query = query.sort(req.query.sort);
-    }
-
     applySelect(query, options, req);
     applyPopulate(query, options, req);
+    applySort(query, options, req);
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
