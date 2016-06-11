@@ -20,22 +20,29 @@ describe('restify-mongoose', function () {
 
   describe('query', function () {
     before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
-    before(mongoTest.populate(Author,
-      // using a known _id to simplify testing populate
-      {name: 'Test Testerson', '_id': '55e077e05e207b5447171f6e'},
-      {name: 'Conny Contributor', '_id': '55e077e05e207b5447171f6f'},
-      {name: 'Conrad Contributor', '_id': '55e077e05e207b5447171f6g'}
-    ));
-    before(mongoTest.populate(Note,
-      {
-        title: 'first',
-        date: new Date(),
-        author: '55e077e05e207b5447171f6e',
-        contributors: ['55e077e05e207b5447171f6f', '55e077e05e207b5447171f6g']
-      },
-      {title: 'second', date: new Date()},
-      {title: 'third', date: new Date()}
-    ));
+
+    before(function(done) {
+      var authorsToCreate = [
+        { name: 'Test Testerson' },
+        { name: 'Conny Contributor' },
+        { name: 'Conrad Contributor' }
+      ];
+
+      var notesToCreate = [
+        {title: 'first', date: new Date()},
+        {title: 'second', date: new Date()},
+        {title: 'third', date: new Date()}
+      ];
+
+      Author.create(authorsToCreate, function(err, authors) {
+        if (err) { return done(err); }
+
+        notesToCreate[0].author = authors[0]._id;
+        notesToCreate[0].contributors = [authors[1]._id, authors[2]._id];
+
+        Note.create(notesToCreate, done);
+      });
+    });
 
     after(mongoTest.disconnect());
 
