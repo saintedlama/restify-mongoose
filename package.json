@@ -23,8 +23,7 @@
   "scripts": {
     "test": "cross-env NODE_ENV=test mocha -R spec test/",
     "cover": "cross-env NODE_ENV=test istanbul cover ./node_modules/mocha/bin/_mocha --report html -- -R spec",
-    "lint": "jshint **.js",
-    "release": "npm-release"
+    "lint": "jshint **.js"
   },
   "keywords": [
     "restify",
@@ -43,7 +42,7 @@
     "istanbul": "^0.4.3",
     "jshint": "^2.9.2",
     "mocha": "~2.5.3",
-    "npm-release": "1.0.0",
+    "shelljs": "^0.7.0",
     "should": "~9.0.2",
     "supertest": "~1.2.0"
   },
