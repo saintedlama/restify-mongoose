@@ -284,6 +284,16 @@ describe('restify-mongoose', function () {
         .end(done);
     });
 
+    it('should not execute queries with req.query.pageSize above maxPageSize option', function (done) {
+      request(server({ pageSize: 1, maxPageSize: 2 }))
+        .get('/notes?pageSize=3')
+        .expect(200)
+        .expect(function (res) {
+          res.body.should.have.lengthOf(2);
+        })
+        .end(done);
+    });
+
     it('should override with req.query.pageSize if options.pageSize set', function (done) {
       request(server({pageSize: 1}))
         .get('/notes?pageSize=3')
@@ -306,12 +316,12 @@ describe('restify-mongoose', function () {
       });
     });
 
-    it('should not use req.query.pageSize if greater then 100', function (done) {
-      request(server({pageSize: 1}))
+    it('should not use req.query.pageSize if greater then maxPageSize', function (done) {
+      request(server({pageSize: 1, maxPageSize: 2 }))
         .get('/notes?pageSize=101')
         .expect(200)
         .expect(function (res) {
-          res.body.should.have.lengthOf(1);
+          res.body.should.have.lengthOf(2);
         })
         .end(done);
     });

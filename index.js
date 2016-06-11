@@ -218,6 +218,7 @@ var Resource = function (Model, options) {
   this.options = options || {};
   this.options.queryString = this.options.queryString || '_id';
   this.options.pageSize = this.options.pageSize || 100;
+  this.options.maxPageSize = this.options.maxPageSize || 100;
   this.options.baseUrl = this.options.baseUrl || '';
   this.options.outputFormat = this.options.outputFormat || 'regular';
   this.options.modelName = this.options.modelName || Model.modelName;
@@ -236,6 +237,7 @@ Resource.prototype.query = function (options) {
 
   options = options || {};
   options.pageSize = options.pageSize || this.options.pageSize;
+  options.maxPageSize = options.maxPageSize || this.options.maxPageSize;
   options.baseUrl = options.baseUrl || this.options.baseUrl;
   options.projection = options.projection || this.options.listProjection;
   options.outputFormat = options.outputFormat || this.options.outputFormat;
@@ -266,12 +268,12 @@ Resource.prototype.query = function (options) {
       query = query.where(self.options.filter(req, res));
       countQuery = countQuery.where(self.options.filter(req, res));
     }
-
-
+    
     var page = Number(req.query.p) >= 0 ? Number(req.query.p) : 0;
 
-    // pageSize parameter in queryString overrides one in the code. Must be number between [1-100]
-    var pageSize = Number(req.query.pageSize) > 0 && Number(req.query.pageSize) <= 100 ? Number(req.query.pageSize) : options.pageSize;
+    // pageSize parameter in queryString overrides one in the code. Must be number between [1-options.maxPageSize]
+    var requestedPageSize = Number(req.query.pageSize) > 0 ? Number(req.query.pageSize) : options.pageSize;
+    var pageSize = Math.min(requestedPageSize, options.maxPageSize);
 
     query.skip(pageSize * page);
     query.limit(pageSize + 1);

@@ -126,7 +126,7 @@ To filter a notes resource by title to match term "first" append the __q__ query
 
 ## Paginate
 Requests that return multiple items in `query` will be paginated to 100 items by default. You can set the `pageSize`
-(number min=1, max=100) by adding it to the options.
+(number min=1) by adding it to the options.
 
 ```javascript
 var options = {
@@ -144,6 +144,9 @@ or as query string parameter `pageSize` (which will have the presedence)
 You can specify further pages with the __p__ parameter and a page number.
 
     http://localhost:3000/notes?p=1
+
+An additional restriction to page sizes can be made with `maxPageSize` option (default value is 100) that defines the
+maximum allowed page size to avoid unbound queries.
 
 ### Link Header
 The pagination info is included in [the Link header](http://tools.ietf.org/html/rfc5988). It is important to follow
