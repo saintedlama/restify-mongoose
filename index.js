@@ -228,6 +228,12 @@ var Resource = function (Model, options) {
   this.options.detailProjection = this.options.detailProjection || function (req, item, cb) {
       cb(null, item);
     };
+  this.options.insertProjection = this.options.insertProjection || function (req, item, cb) {
+      cb(null, item);
+    };
+  this.options.updateProjection = this.options.updateProjection || function (req, item, cb) {
+      cb(null, item);
+    };
 };
 
 util.inherits(Resource, EventEmitter);
@@ -268,7 +274,7 @@ Resource.prototype.query = function (options) {
       query = query.where(self.options.filter(req, res));
       countQuery = countQuery.where(self.options.filter(req, res));
     }
-    
+
     var page = Number(req.query.p) >= 0 ? Number(req.query.p) : 0;
 
     // pageSize parameter in queryString overrides one in the code. Must be number between [1-options.maxPageSize]
@@ -325,6 +331,7 @@ Resource.prototype.insert = function (options) {
   var self = this;
 
   options = options || {};
+  options.projection = options.projection || this.options.insertProjection;
   options.baseUrl = options.baseUrl || this.options.baseUrl;
   options.beforeSave = options.beforeSave || this.options.beforeSave;
   options.outputFormat = options.outputFormat || this.options.outputFormat;
@@ -336,6 +343,7 @@ Resource.prototype.insert = function (options) {
       execBeforeSave(req, model, options.beforeSave),
       execSave(model),
       setLocationHeader(req, res, true, options.baseUrl),
+      buildProjection(req, options.projection),
       emitEvent(self, 'insert'),
       sendData(res, options.outputFormat, options.modelName, 201)
     ], next);
@@ -346,6 +354,7 @@ Resource.prototype.update = function (options) {
   var self = this;
 
   options = options || {};
+  options.projection = options.projection || this.options.updateProjection;
   options.baseUrl = options.baseUrl || this.options.baseUrl;
   options.beforeSave = options.beforeSave || this.options.beforeSave;
   options.outputFormat = options.outputFormat || this.options.outputFormat;
@@ -380,6 +389,7 @@ Resource.prototype.update = function (options) {
         execBeforeSave(req, model, options.beforeSave),
         execSave(model),
         setLocationHeader(req, res, false, options.baseUrl),
+        buildProjection(req, options.projection),
         emitEvent(self, 'update'),
         sendData(res, options.outputFormat, options.modelName)
       ], next);
