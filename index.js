@@ -222,6 +222,14 @@ var Resource = function (Model, options) {
   this.options.baseUrl = this.options.baseUrl || '';
   this.options.outputFormat = this.options.outputFormat || 'regular';
   this.options.modelName = this.options.modelName || Model.modelName;
+
+  if(this.options.globalProjection) {
+    if(!this.options.listProjection) this.options.listProjection = this.options.globalProjection;
+    if(!this.options.detailProjection) this.options.detailProjection = this.options.globalProjection;
+    if(!this.options.insertProjection) this.options.insertProjection = this.options.globalProjection;
+    if(!this.options.updateProjection) this.options.updateProjection = this.options.globalProjection;
+  }
+
   this.options.listProjection = this.options.listProjection || function (req, item, cb) {
       cb(null, item);
     };
