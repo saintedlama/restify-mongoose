@@ -1,88 +1,169 @@
-<a name"0.2.6"></a>
-### 0.2.6 (2015-09-11)
+1.0.0 / 2016-06-11
+==================
 
-#### Features
-* **populate:** Added populating referenced documents. Thanks to @jmwohl
-* **option:** Added documentation about option sent to serve method. Thanks to @mancvso
-* **Dependency upgrades:** Updated runtime and dev dependencies to latest versions
-  * Updated to mongoose 4.1.6
-  * Updated to restify 4.0.2
-  * Updated to mocha 2.3.2
-  * Updated to npm-release 0.0.4
-  * Updated to should 7.1.0
-  * Updated to supertest 1.1.0
-  * Updated to istanbul 0.3.19
+  * 1.0.0
+  * Change release script to custom release script
+  * Update dependencies and fix tests
+  * [MAJOR] Add maxPageSize option and adapt breaking test
+  * Modernize travis and add a couple of updated build targets
+  * Implement cross platform tests with cross-env :tada
+  * Merge pull request [#35](https://github.com/saintedlama/restify-mongoose/issues/35) from sergiofm/master
+    default sort in options object
+  * default sort in options object
+  * Merge pull request [#33](https://github.com/saintedlama/restify-mongoose/issues/33) from sergiofm/master
+    Select fields in the options object.
+  * select fields in the options object.
 
-#### Breaking Changes
-* None
+0.2.6 / 2015-09-14
+==================
 
-#### Bug Fixes
-* None
+  * Release v0.2.6.
+  * Update CHANGELOG.md
+    Updated for v2.6
+  * Updated to latest versions: mocha, npm-release, should, supertest, mongoose and restify
+  * Merge pull request [#27](https://github.com/saintedlama/restify-mongoose/issues/27) from mancvso/patch-1
+    Update README.md
+    Thanks, @mancvso !
+  * Merge branch 'jmwohl-master'
+  * Add test case when populate  option is NOT set
+  * Update README.md
+  * Updated populate docs in Readme
+  * added docs
+  * added populate options for resource and query/detail methods, along with corresponding tests
+  * updated tests for populate queries
+  * added populate param handling
+  * Update README.md
+    No explanation of the options object was in the documentation.
+  * Add section about code style, tests and coverage when contributing
+  * Make npm-release a dev dependency and add a npm release script and emit html from npm run cover
+  * Merge pull request [#26](https://github.com/saintedlama/restify-mongoose/issues/26) from ismarslomic/master
+    Documenting contribution guidelines
+  * Updated  URL to devDependency badge in README
+  * Fixed misspelling in README
+  * Merge remote-tracking branch 'upstream/master'
+  * [#25](https://github.com/saintedlama/restify-mongoose/issues/25) added contributing docs and release procedures to automate git and npm releases
+  * Add NPM badge
+  * Add dependency status badges
+  * Merge pull request [#24](https://github.com/saintedlama/restify-mongoose/issues/24) from ismarslomic/master
+    Move changelogs to CHANGELOG.md
+  * Updated contributors list
+  * Moved changelogs to CHANGELOG.md which follows same structure as angular and angular-material
+  * Add node 0.12 and iojs as build targets
 
-<a name"0.2.5"></a>
-### 0.2.5 (2015-07-02)
+0.2.5 / 2015-07-02
+==================
 
-#### Features
-* **query:** Added total count of resources for `query` by adding `X-Total-Count header`
-* **pagination:**
-  * Added `last` relation in Link Header for showing URL to last page with results
-  * Added `pageSize` as query string parameter in order to set page size for pagination in the URL itself
-* **POST reponse status code:** Changed status code to `201 CREATED` for successful `POST` requests
-* **Dependency upgrades:** Updated runtime and dev dependencies to latest versions
-  * Updated to async 1.0.0
-  * Updated to mongoose 4.0.6
-  * Updated to restify 3.0.3
-  * Updated to mocha 2.2.5
-  * Updated to should 7.0.1
-  * Updated to supertest 1.0.1
-  * Updated to istanbul 0.3.16
+  * 0.2.5
+  * Downgrade async again
 
-#### Breaking Changes
-* None
+0.2.4 / 2015-07-02
+==================
 
-#### Bug Fixes
-* **Header location:** Fixed bug when returning Location URL for `PATCH`, model._id was duplicated
+  * 0.2.4
+  * Update dependencies
+  * Merge pull request [#22](https://github.com/saintedlama/restify-mongoose/issues/22) from ismarslomic/master
+    Package upgrade. Last link. Total count. PageSize. Bug fix.
+  * Merge branch 'master' of https://github.com/ismarslomic/restify-mongoose
+  * bug fix: req.query.pageSize where persisted on server
+  * Small README bug fixed to display Changelog correctly
+  * Updated changelog in README for async v1.0.0
+  * fixed jshint errors, added jshint dependency and 'lint' npm script command.
+  * added 'last' link to the example in README
+  * downgraded async dependency from v1.2.1 to v1.0.0 because 7 serve test cases where failing. It seems that changes introduced in async v1.1.0 leads to test fails.
+  * Changed response code for POST from 200 to 201 according to RFC2616
+  * Fixed bug in setLocationHeader() for PATCH, model._id was appended to URL even if existing.
+    Added baseUrl to Location URL as well and added few more tests.
+  * updated README with pageSize in query string having presendence
+  * added pageSize as new query string parameter in order to set page sizes by URL as well.
+  * fix missing single quote in README
+  * added last relation in Link Header for URL to last page with results
+  * updated to latest npm packages. Started documenting changelog for 0.3.0 version
+  * added x-total-count header and added pagination chapter to README
+  * Merge pull request [#21](https://github.com/saintedlama/restify-mongoose/issues/21) from yodlr/queryString
+    Query string
+  * Merge pull request [#1](https://github.com/saintedlama/restify-mongoose/issues/1) from saintedlama/master
+    Bring in upstream changes
 
-<a name"0.2.2"></a>
-### 0.2.2 (2015-05-19)
+0.2.3 / 2015-03-08
+==================
 
-#### Features
-* **beforeSave:** The `beforeSave` option can now be included in the options passed to the `restifyMongoose` constructor.
+  * Update dependencies
+  * Bump version
+  * Merge pull request [#19](https://github.com/saintedlama/restify-mongoose/issues/19) from edsadr/output_format
+    Adding a new option customizing the output format
+  * Adding a new option customizing the output format with an option to be more compatible with http://jsonapi.org/format/, adding some docs about it too
+  * add queryString
+  * Merge pull request [#18](https://github.com/saintedlama/restify-mongoose/issues/18) from djensen47/patch-2
+    Added a section in the README about projections
+  * Added a section about projections
+    Detailed instructions on how to use a projection.
+  * Merge pull request [#17](https://github.com/saintedlama/restify-mongoose/issues/17) from mpareja/baseurl_paths
+    Support base urls with paths.
+  * Support base urls with paths.
+  * Merge pull request [#16](https://github.com/saintedlama/restify-mongoose/issues/16) from mpareja/linkheaders
+    Generate Link header with paging URLs.
+  * Generate Link header with paging URLs.
+  * Merge pull request [#15](https://github.com/saintedlama/restify-mongoose/issues/15) from mpareja/paging_tests
+    Add tests for paging support
+  * Retrofit pagination tests.
+  * Add istanbul as dev dependency.
+  * Updates dependencies
 
-#### Breaking Changes
-* None
+0.2.2 / 2014-05-24
+==================
 
-#### Bug Fixes
-* None
+  * Merge pull request [#13](https://github.com/saintedlama/restify-mongoose/issues/13) from djensen47/master
+    Added `beforeSave` as a constructor option
+  * Added `beforeSave` as an option for the constructor.
+    Previously `beforeSave` could only be set on the individual functions
+    `insert` and update`. With this change, the caller need only provide it
+    once to the constructor options and the beforeSave function will be
+    invoked appropriately.
+  * Updated README.md with more details about 0.2.1
 
-<a name"0.2.1"></a>
-### 0.2.1 (2015-05-18)
+0.2.1 / 2014-05-18
+==================
 
-#### Features
-* **Dependency upgrades:** Updated runtime and dev dependencies to latest versions
-  * Updates to restify 2.8.x
-  * Updates to async 0.9.x
-* **Validation errors:** Improved the error message for mongoose validation errors
-* Code cleanup
+  * Exclude editorconfig and jshintrc
+  * Bump version
+  * Improve error handling for mongoose validation errors
+  * Remove http://localhost:3000 since it's superfluous
+  * Move static middleware serving to end of middleware chain
+  * Correct require
+  * Simplify code for building handler chains
+  * Adds tests to prove that before and after handlers can be passed as non arrays
 
-#### Breaking Changes
-* None
+0.2.0 / 2014-05-18
+==================
 
-#### Bug Fixes
-* None
-
-<a name"0.2.0"></a>
-### 0.2.0 (2015-05-18)
-
-#### Features
-* **Restify handler chains:** Added `before` and `after` options to the `serve` function which pass arrays of handlers to the restify handler chain.
-* **beforeSave:** Added `beforeSave` functionality to the **insert** and **update** operations.
-* **Coverage:** Added coverage script to package.json
-* **Use async:** The insert and update operations now use async.waterfall
-* **Improve tests:** The server test helper has an optional parameter which will set or not set default routes
-
-#### Breaking Changes
-* None
-
-#### Bug Fixes
-* None
+  * Exclude coverage directory from npm package
+  * Removes unused 'onError' function
+  * Please jslint by adding a ;
+  * Adds test for serve without before and after middleware
+  * Adds change log entry for restify 2.8.x update
+  * Updates modules
+  * Merge branch 'master' of https://github.com/djensen47/restify-mongoose into djensen47
+    Conflicts:
+    README.md
+  * Added a contributors section to the package.json.
+  * Set version number to 0.2.0 and updated README.
+    The README includes a new changelog section that has an overview of th
+    new changes.
+  * Added handler chain 'before' and 'after' options.
+    Added a new optional `options` parameter to `serve` function, which
+    allows the caller to include an array of `before` restify handlers
+    and/or an array of `after` restify handlers.
+    This resolves [Issue [#6](https://github.com/saintedlama/restify-mongoose/issues/6)](https://github.com/saintedlama/restify-mongoose/issues/6).
+  * Fixed issue with 'serve should create note' using wrong path.
+    This fixes [Issue [#11](https://github.com/saintedlama/restify-mongoose/issues/11)](https://github.com/saintedlama/restify-mongoose/issues/11)
+  * Added 'beforeSave' functionality.
+    Per the discussion on [Issue
+    8](https://github.com/saintedlama/restify-mongoose/issues/8) this is the
+    functionality to execute a custom function before the model is saved.
+    This allows for operations such as inserting a user id on a model before
+    is it saved.
+  * Allow the test server to initialize without routes.
+    Added an optional parameter to the test server which will enable/disable
+    setting the routes for tests. The default is `true` or enabled.
+    This will be useful for testing passing arguments to the various route
+    handlers.
