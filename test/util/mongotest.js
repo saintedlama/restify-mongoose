@@ -1,6 +1,7 @@
 'use strict';
 var assert = require('assert');
 var mongoose = require('mongoose');
+var async = require('async');
 
 function dropCollections(collections, index, cb) {
   if (typeof(index) === 'function') {
@@ -49,11 +50,9 @@ module.exports = {
     var instances = args.slice(1, args.length);
 
     return function(cb) {
-      Constructor.create(instances, function(err) {
-        assert.ifError(err);
-
-        cb();
-      });
+      async.eachSeries(instances, function(instance, next) {
+        Constructor.create(instance, next);
+      }, cb);
     };
   },
 
