@@ -1,3 +1,19 @@
+2.0.0 / 2017-04-07
+==================
+
+  * 2.0.0
+  * Update changelog
+  * Add changelog update task
+  * Fix release script
+  * Update dependencies
+  * Fix order of test data creation
+  * Convert to LF style
+  * Mark typescript definiton as text
+  * Add node.js 7 to build matrix
+  * Merge pull request [#40](https://github.com/saintedlama/restify-mongoose/issues/40) from kolbma/master
+    Added index.d.ts for TypeScript type checking
+  * Added index.d.ts for TypeScript type checking
+
 1.0.0 / 2016-06-11
 ==================
 
@@ -141,29 +157,3 @@
   * Please jslint by adding a ;
   * Adds test for serve without before and after middleware
   * Adds change log entry for restify 2.8.x update
-  * Updates modules
-  * Merge branch 'master' of https://github.com/djensen47/restify-mongoose into djensen47
-    Conflicts:
-    README.md
-  * Added a contributors section to the package.json.
-  * Set version number to 0.2.0 and updated README.
-    The README includes a new changelog section that has an overview of th
-    new changes.
-  * Added handler chain 'before' and 'after' options.
-    Added a new optional `options` parameter to `serve` function, which
-    allows the caller to include an array of `before` restify handlers
-    and/or an array of `after` restify handlers.
-    This resolves [Issue [#6](https://github.com/saintedlama/restify-mongoose/issues/6)](https://github.com/saintedlama/restify-mongoose/issues/6).
-  * Fixed issue with 'serve should create note' using wrong path.
-    This fixes [Issue [#11](https://github.com/saintedlama/restify-mongoose/issues/11)](https://github.com/saintedlama/restify-mongoose/issues/11)
-  * Added 'beforeSave' functionality.
-    Per the discussion on [Issue
-    8](https://github.com/saintedlama/restify-mongoose/issues/8) this is the
-    functionality to execute a custom function before the model is saved.
-    This allows for operations such as inserting a user id on a model before
-    is it saved.
-  * Allow the test server to initialize without routes.
-    Added an optional parameter to the test server which will enable/disable
-    setting the routes for tests. The default is `true` or enabled.
-    This will be useful for testing passing arguments to the various route
-    handlers.
