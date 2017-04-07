@@ -23,7 +23,8 @@
   "scripts": {
     "test": "cross-env NODE_ENV=test mocha -R spec test/",
     "cover": "cross-env NODE_ENV=test istanbul cover ./node_modules/mocha/bin/_mocha --report html -- -R spec",
-    "lint": "jshint **.js"
+    "lint": "jshint **.js",
+    "changelog": "changelog all -m > CHANGELOG.md"
   },
   "keywords": [
     "restify",
@@ -38,6 +39,7 @@
     "restify": "~4.3.0"
   },
   "devDependencies": {
+    "changelog": "^1.0.7",
     "cross-env": "^4.0.0",
     "istanbul": "^0.4.5",
     "jshint": "^2.9.4",
