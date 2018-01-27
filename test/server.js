@@ -14,9 +14,9 @@ module.exports = function(options, routes) {
     version: '1.0.0'
   });
 
-  server.use(restify.acceptParser(server.acceptable));
-  server.use(restify.queryParser());
-  server.use(restify.bodyParser());
+  server.use(restify.plugins.acceptParser(server.acceptable));
+  server.use(restify.plugins.queryParser());
+  server.use(restify.plugins.bodyParser());
 
   var notes = restifyMongoose(Note, options);
 

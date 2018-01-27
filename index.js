@@ -1,21 +1,28 @@
 'use strict';
 var async = require('async');
 var restify = require('restify');
+
+var restifyErrors = require('restify-errors');
+
 var util = require('util');
 var url = require('url');
 var EventEmitter = require('events').EventEmitter;
 
 var restifyError = function (err) {
+
   if ('ValidationError' !== err.name) {
     return err;
   }
 
-  return new restify.InvalidContentError({
-    body: {
-      message: 'Validation failed',
-      errors: err.errors
-    }
+  var returnError = new restifyErrors.InvalidContentError({
+    message: 'ValidationError',
   });
+
+  returnError.toJSON = function () {
+      return {...this.body, errors: err.errors};
+  };
+
+  return returnError;
 };
 
 var emitEvent = function (self, event) {
@@ -45,13 +52,13 @@ var sendData = function (res, format, modelName, status) {
 var execQueryWithTotCount = function (query, countQuery) {
   return function (cb) {
     async.parallel({
-        models: function (callback) {
-          query.exec(callback);
-        },
-        count: function (callback) {
-          countQuery.count(callback);
-        }
+      models: function (callback) {
+        query.exec(callback);
       },
+      count: function (callback) {
+        countQuery.count(callback);
+      }
+    },
       function (err, results) {
         if (err) {
           return cb(restifyError(err));
@@ -131,14 +138,14 @@ var buildProjections = function (req, projection) {
 var buildProjection = function (req, projection) {
   return function (model, cb) {
     if (!model) {
-      return cb(new restify.ResourceNotFoundError(req.params.id));
+      return cb(new restifyErrors.ResourceNotFoundError(req.params.id));
     }
 
     projection(req, model, cb);
   };
 };
 
-var parseCommaParam = function(commaParam) {
+var parseCommaParam = function (commaParam) {
   return commaParam.replace(/,/g, ' ');
 };
 
@@ -189,22 +196,22 @@ var applyTotalCount = function (res) {
   };
 };
 
-var applySelect = function(query, options, req){
+var applySelect = function (query, options, req) {
   //options select overrides request select
   var select = options.select || req.query.select;
-  if(select){
+  if (select) {
     query = query.select(parseCommaParam(select));
   }
 };
 
-var applyPopulate = function(query, options, req){
+var applyPopulate = function (query, options, req) {
   var populate = req.query.populate || options.populate;
   if (populate) {
     query = query.populate(parseCommaParam(populate));
   }
 };
 
-var applySort = function(query, options, req){
+var applySort = function (query, options, req) {
   var sort = req.query.sort || options.sort;
   if (sort) {
     query = query.sort(parseCommaParam(sort));
@@ -223,11 +230,11 @@ var Resource = function (Model, options) {
   this.options.outputFormat = this.options.outputFormat || 'regular';
   this.options.modelName = this.options.modelName || Model.modelName;
   this.options.listProjection = this.options.listProjection || function (req, item, cb) {
-      cb(null, item);
-    };
+    cb(null, item);
+  };
   this.options.detailProjection = this.options.detailProjection || function (req, item, cb) {
-      cb(null, item);
-    };
+    cb(null, item);
+  };
 };
 
 util.inherits(Resource, EventEmitter);
@@ -256,7 +263,7 @@ Resource.prototype.query = function (options) {
         query = query.where(q);
         countQuery = countQuery.where(q);
       } catch (err) {
-        return res.send(400, {message: 'Query is not a valid JSON object', errors: err});
+        return res.send(400, { message: 'Query is not a valid JSON object', errors: err });
       }
     }
 
@@ -268,7 +275,7 @@ Resource.prototype.query = function (options) {
       query = query.where(self.options.filter(req, res));
       countQuery = countQuery.where(self.options.filter(req, res));
     }
-    
+
     var page = Number(req.query.p) >= 0 ? Number(req.query.p) : 0;
 
     // pageSize parameter in queryString overrides one in the code. Must be number between [1-options.maxPageSize]
@@ -284,7 +291,7 @@ Resource.prototype.query = function (options) {
       applyTotalCount(res),
       buildProjections(req, options.projection),
       emitEvent(self, 'query'),
-      sendData(res, options.outputFormat, options.modelName)
+      sendData(res, options.outputFormat, options.modelName, 200)
     ], next);
   };
 };
@@ -316,7 +323,7 @@ Resource.prototype.detail = function (options) {
       execQuery(query),
       buildProjection(req, options.projection),
       emitEvent(self, 'detail'),
-      sendData(res, options.outputFormat, options.modelName)
+      sendData(res, options.outputFormat, options.modelName, 200)
     ], next);
   };
 };
@@ -367,11 +374,11 @@ Resource.prototype.update = function (options) {
       }
 
       if (!model) {
-        return next(new restify.ResourceNotFoundError(req.params.id));
+        return next(new restifyErrors.ResourceNotFoundError(req.params.id));
       }
 
       if (!req.body) {
-        return next(new restify.InvalidContentError('No update data sent'));
+        return next(new restifyErrors.InvalidContentError('No update data sent'));
       }
 
       model.set(req.body);
@@ -381,7 +388,7 @@ Resource.prototype.update = function (options) {
         execSave(model),
         setLocationHeader(req, res, false, options.baseUrl),
         emitEvent(self, 'update'),
-        sendData(res, options.outputFormat, options.modelName)
+        sendData(res, options.outputFormat, options.modelName, 200)
       ], next);
     });
   };
@@ -407,7 +414,7 @@ Resource.prototype.remove = function () {
       }
 
       if (!model) {
-        return next(new restify.ResourceNotFoundError(req.params.id));
+        return next(new restifyErrors.ResourceNotFoundError(req.params.id));
       }
 
       model.remove(function (err) {

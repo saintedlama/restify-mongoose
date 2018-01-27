@@ -25,9 +25,9 @@ var server = restify.createServer({
     version: '1.0.0'
 });
 
-server.use(restify.acceptParser(server.acceptable));
-server.use(restify.queryParser());
-server.use(restify.bodyParser());
+server.use(restify.plugins.acceptParser(server.acceptable));
+server.use(restify.plugins.queryParser());
+server.use(restify.plugins.bodyParser());
 
 // Create a simple mongoose model 'Note'
 var NoteSchema = new mongoose.Schema({
