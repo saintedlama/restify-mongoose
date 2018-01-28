@@ -5,7 +5,7 @@ var mongoose = require('mongoose');
 var restifyMongoose = require('../index.js');
 var models = require('./models');
 
-mongoose.connect('mongodb://surfista:1QAZxsw2@ds117148.mlab.com:17148/example');
+mongoose.connect('mongodb://localhost/restify-mongoose-tests');
 
 var server = restify.createServer({
   name: 'restify.mongoose.examples.notes',
