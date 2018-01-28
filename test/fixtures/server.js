@@ -1,5 +1,5 @@
 const restify = require('restify');
-const restifyMongoose = require('../index');
+const restifyMongoose = require('../../');
 const Note = require('./note');
 
 module.exports = function(options, routes) {

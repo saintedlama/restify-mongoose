@@ -1,12 +1,12 @@
 'use strict';
-require("should");
+require('should');
 
 const request = require('supertest');
 const mongoose = require('mongoose');
 const restifyMongoose = require('../index');
-const server = require('./server');
-const Note = require('./note');
-const Author = require('./author');
+const server = require('./fixtures/server');
+const Note = require('./fixtures/note');
+const Author = require('./fixtures/author');
 const mongoTest = require('./util/mongotest');
 
 const MONGO_URI = 'mongodb://localhost/restify-mongoose-tests';
