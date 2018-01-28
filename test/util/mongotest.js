@@ -1,24 +1,6 @@
 'use strict';
-const assert = require('assert');
 const mongoose = require('mongoose');
 const async = require('async');
-
-function dropCollections(collections, index, cb) {
-  if (typeof(index) === 'function') {
-    cb = index;
-    index = 0;
-  }
-
-  if (index < collections.length) {
-    mongoose.connection.db.dropCollection(collections[index], function(err) {
-      assert.ifError(err);
-
-      dropCollections(collections, index + 1, cb);
-    });
-  } else {
-    cb();
-  }
-}
 
 module.exports = {
   prepareDb : function(connectionString, options) {
@@ -29,16 +11,16 @@ module.exports = {
       this.timeout(options.timeout);
 
       mongoose.connect(connectionString, function(err) {
-        assert.ifError(err);
+        if (err) { return cb(err); }
 
         mongoose.connection.db.collections(function(err, collections) {
-          assert.ifError(err);
+          if (err) { return cb(err); }
 
           const collectionsToDrop = collections
             .filter(function(col) { return col.collectionName.indexOf('system.') !== 0; })
             .map(function(col) { return col.collectionName; });
 
-          dropCollections(collectionsToDrop, 0, cb);
+          async.forEach(collectionsToDrop, (collection, next) => mongoose.connection.db.dropCollection(collection, next), cb);
         });
       });
     };
