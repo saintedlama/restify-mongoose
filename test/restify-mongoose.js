@@ -12,6 +12,8 @@ var mongoTest = require('./util/mongotest');
 const MONGO_URI = 'mongodb://localhost/restify-mongoose-tests';
 
 describe('restify-mongoose', function () {
+  this.timeout(5000);
+
   describe('constructor', function () {
     it('should throw if no model is given', function () {
       (function () {
