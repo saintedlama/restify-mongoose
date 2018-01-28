@@ -9,6 +9,8 @@ var Note = require('./note');
 var Author = require('./author');
 var mongoTest = require('./util/mongotest');
 
+const MONGO_URI = 'mongodb://localhost/restify-mongoose-tests';
+
 describe('restify-mongoose', function () {
   describe('constructor', function () {
     it('should throw if no model is given', function () {
@@ -19,9 +21,9 @@ describe('restify-mongoose', function () {
   });
 
   describe('query', function () {
-    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    before(mongoTest.prepareDb(MONGO_URI));
 
-    before(function(done) {
+    before(function (done) {
       var authorsToCreate = [
         { name: 'Test Testerson' },
         { name: 'Conny Contributor' },
@@ -29,12 +31,12 @@ describe('restify-mongoose', function () {
       ];
 
       var notesToCreate = [
-        {title: 'first', date: new Date()},
-        {title: 'second', date: new Date()},
-        {title: 'third', date: new Date()}
+        { title: 'first', date: new Date() },
+        { title: 'second', date: new Date() },
+        { title: 'third', date: new Date() }
       ];
 
-      Author.create(authorsToCreate, function(err, authors) {
+      Author.create(authorsToCreate, function (err, authors) {
         if (err) { return done(err); }
 
         notesToCreate[0].author = authors[0]._id;
@@ -71,14 +73,14 @@ describe('restify-mongoose', function () {
 
     it('should not populate resources with referenced models by default', function (done) {
       request(server())
-          .get('/notes')
-          .expect('Content-Type', /json/)
-          .expect(200)
-          .expect(function (res) {
-            res.body.should.have.length(3);
-            res.body[0].author.should.be.undef;
-          })
-          .end(done);
+        .get('/notes')
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .expect(function (res) {
+          res.body.should.have.length(3);
+          res.body[0].author.should.be.undef;
+        })
+        .end(done);
     });
 
     it('should populate resources with referenced models according to populate query param', function (done) {
@@ -107,7 +109,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should populate resources with referenced models according to populate resource option', function (done) {
-      request(server({populate: 'author'}))
+      request(server({ populate: 'author' }))
         .get('/notes')
         .expect('Content-Type', /json/)
         .expect(200)
@@ -121,7 +123,7 @@ describe('restify-mongoose', function () {
     it('should populate resources with referenced models according to populate query method option', function (done) {
       var notes = restifyMongoose(Note);
       var svr = server(null, false);
-      svr.get('/notes', notes.query({populate: 'author'}));
+      svr.get('/notes', notes.query({ populate: 'author' }));
       request(svr)
         .get('/notes')
         .expect('Content-Type', /json/)
@@ -144,7 +146,7 @@ describe('restify-mongoose', function () {
     it('should filter notes according to options', function (done) {
       var svr = server({
         filter: function () {
-          return {"title": "second"};
+          return { "title": "second" };
         }
       });
 
@@ -173,7 +175,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should sort notes according to options', function (done) {
-      request(server({'sort':'-title'}))
+      request(server({ 'sort': '-title' }))
         .get('/notes')
         .expect('Content-Type', /json/)
         .expect(200)
@@ -186,7 +188,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should sort notes according to query, overriding options', function (done) {
-      request(server({'sort':'title'}))
+      request(server({ 'sort': 'title' }))
         .get('/notes?sort=-title')
         .expect('Content-Type', /json/)
         .expect(200)
@@ -212,7 +214,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should select fields of notes according to options', function (done) {
-      request(server({select: "title"}))
+      request(server({ select: "title" }))
         .get('/notes?select=date')
         .expect('Content-Type', /json/)
         .expect(200)
@@ -250,19 +252,19 @@ describe('restify-mongoose', function () {
   });
 
   describe('pagination', function () {
-    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    before(mongoTest.prepareDb(MONGO_URI));
     before(mongoTest.populate(Note,
-      {title: 'first', content: 'a', date: new Date()},
-      {title: 'second', content: 'a', date: new Date()},
-      {title: 'third', content: 'a', date: new Date()},
-      {title: 'forth', content: 'b', date: new Date()},
-      {title: 'fifth', content: 'b', date: new Date()}
+      { title: 'first', content: 'a', date: new Date() },
+      { title: 'second', content: 'a', date: new Date() },
+      { title: 'third', content: 'a', date: new Date() },
+      { title: 'forth', content: 'b', date: new Date() },
+      { title: 'fifth', content: 'b', date: new Date() }
     ));
 
     after(mongoTest.disconnect());
 
     it('should limit notes returned to pageSize', function (done) {
-      request(server({pageSize: 2}))
+      request(server({ pageSize: 2 }))
         .get('/notes')
         .expect(200)
         .expect(function (res) {
@@ -272,7 +274,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should split pages by pageSize', function (done) {
-      request(server({pageSize: 2}))
+      request(server({ pageSize: 2 }))
         .get('/notes?p=2')
         .expect(200)
         .expect(function (res) {
@@ -302,7 +304,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should override with req.query.pageSize if options.pageSize set', function (done) {
-      request(server({pageSize: 1}))
+      request(server({ pageSize: 1 }))
         .get('/notes?pageSize=3')
         .expect(200)
         .expect(function (res) {
@@ -312,8 +314,8 @@ describe('restify-mongoose', function () {
     });
 
     it('should go back to options.pageSize if req.query.pageSize removed', function (done) {
-      var agent = request(server({pageSize: 1}));
-      agent.get('/notes?pageSize=3').end(function(){
+      var agent = request(server({ pageSize: 1 }));
+      agent.get('/notes?pageSize=3').end(function () {
         agent.get('/notes')
           .expect(200)
           .expect(function (res) {
@@ -324,7 +326,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should not use req.query.pageSize if greater then maxPageSize', function (done) {
-      request(server({pageSize: 1, maxPageSize: 2 }))
+      request(server({ pageSize: 1, maxPageSize: 2 }))
         .get('/notes?pageSize=101')
         .expect(200)
         .expect(function (res) {
@@ -334,7 +336,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should not use req.query.pageSize if lower then 0', function (done) {
-      request(server({pageSize: 2}))
+      request(server({ pageSize: 2 }))
         .get('/notes?pageSize=-1')
         .expect(200)
         .expect(function (res) {
@@ -344,7 +346,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should not use req.query.pageSize if not a number', function (done) {
-      request(server({pageSize: 2}))
+      request(server({ pageSize: 2 }))
         .get('/notes?pageSize=abcd')
         .expect(200)
         .expect(function (res) {
@@ -354,7 +356,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should not use req.query.pageSize if it is 0', function (done) {
-      request(server({pageSize: 2}))
+      request(server({ pageSize: 2 }))
         .get('/notes?pageSize=0')
         .expect(200)
         .expect(function (res) {
@@ -365,7 +367,7 @@ describe('restify-mongoose', function () {
 
     function assertFirstPage(suffix) {
       return function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes' + suffix)
           .expect(200)
           .expect(function (res) {
@@ -396,13 +398,13 @@ describe('restify-mongoose', function () {
 
     describe('total count header', function () {
       it('should return total count of models if no pagination used', assertTotalCount('5', '', ''));
-      it('should return total count of models if pageSize set but no page selected', assertTotalCount('5', {pageSize: 2}, ''));
-      it('should return total count of models if pageSize set and page selected', assertTotalCount('5', {pageSize: 2}, '?p=1'));
+      it('should return total count of models if pageSize set but no page selected', assertTotalCount('5', { pageSize: 2 }, ''));
+      it('should return total count of models if pageSize set and page selected', assertTotalCount('5', { pageSize: 2 }, '?p=1'));
       it('should return total count of models if query is used', assertTotalCount('3', '', '?q={"content":"a"}'));
       it('should return total count of models if filtering is used', function (done) {
         var svr = server({
           filter: function () {
-            return {"title": "second"};
+            return { "title": "second" };
           }
         });
 
@@ -439,7 +441,7 @@ describe('restify-mongoose', function () {
 
     describe('link header', function () {
       it('should include link header with url to next page if more pages', function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes?p=1')
           .expect(200)
           .expect(function (res) {
@@ -450,7 +452,7 @@ describe('restify-mongoose', function () {
       });
 
       it('should preserve query parameters across urls in link header', function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes?q={"content":"a"}')
           .expect(200)
           .expect(function (res) {
@@ -461,7 +463,7 @@ describe('restify-mongoose', function () {
       });
 
       it('should not include next page url in link header if no more pages', function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes?p=2')
           .expect(200)
           .expect(function (res) {
@@ -472,7 +474,7 @@ describe('restify-mongoose', function () {
       });
 
       it('should include previous page url in link header if not at first page', function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes?p=2')
           .expect(200)
           .expect(function (res) {
@@ -483,7 +485,7 @@ describe('restify-mongoose', function () {
       });
 
       it('should not include previous page url in link header if already at first page', function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes?p=0')
           .expect(200)
           .expect(function (res) {
@@ -494,7 +496,7 @@ describe('restify-mongoose', function () {
       });
 
       it('should include first page url in link header', function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes?p=0')
           .expect(200)
           .expect(function (res) {
@@ -505,7 +507,7 @@ describe('restify-mongoose', function () {
       });
 
       it('should support multiple links in link header', function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes?p=1')
           .expect(200)
           .expect(function (res) {
@@ -516,7 +518,7 @@ describe('restify-mongoose', function () {
       });
 
       it('should include base url paths in link header urls', function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com/v1'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com/v1' }))
           .get('/notes?p=0')
           .expect(200)
           .expect(function (res) {
@@ -527,7 +529,7 @@ describe('restify-mongoose', function () {
       });
 
       it('should include last page url in link header if at first page', function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes?p=0')
           .expect(200)
           .expect(function (res) {
@@ -538,7 +540,7 @@ describe('restify-mongoose', function () {
       });
 
       it('should include last page url in link header if not at first page', function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes?p=1')
           .expect(200)
           .expect(function (res) {
@@ -549,7 +551,7 @@ describe('restify-mongoose', function () {
       });
 
       it('should include last page url in link header if at last page', function (done) {
-        request(server({pageSize: 2, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes?p=2')
           .expect(200)
           .expect(function (res) {
@@ -560,7 +562,7 @@ describe('restify-mongoose', function () {
       });
 
       it('should include last page url in link header if page size set to 0', function (done) {
-        request(server({pageSize: 0, baseUrl: 'http://example.com'}))
+        request(server({ pageSize: 0, baseUrl: 'http://example.com' }))
           .get('/notes?p=2')
           .expect(200)
           .expect(function (res) {
@@ -573,7 +575,7 @@ describe('restify-mongoose', function () {
   });
 
   describe('detail', function () {
-    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    before(mongoTest.prepareDb(MONGO_URI));
     after(mongoTest.disconnect());
 
     it('should select detail note', function (done) {
@@ -609,7 +611,7 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        request(server({select: "title content"}))
+        request(server({ select: "title content" }))
           .get('/notes/' + note.id)
           .expect('Content-Type', /json/)
           .expect(200)
@@ -646,7 +648,7 @@ describe('restify-mongoose', function () {
 
         var svr = server({
           filter: function () {
-            return {"title": "doesNotExists"};
+            return { "title": "doesNotExists" };
           }
         });
 
@@ -660,7 +662,7 @@ describe('restify-mongoose', function () {
     it('should populate resources with referenced models according to populate query param', function (done) {
       Author.create({
         name: 'Test Testerson'
-      }, function(err, author) {
+      }, function (err, author) {
         if (err) {
           throw err;
         }
@@ -688,11 +690,11 @@ describe('restify-mongoose', function () {
     it('should populate resources with referenced models according to populate detail method option', function (done) {
       var notes = restifyMongoose(Note);
       var svr = server(null, false);
-      svr.get('/notes/:id', notes.detail({populate: 'author'}));
+      svr.get('/notes/:id', notes.detail({ populate: 'author' }));
 
       Author.create({
         name: 'Test Testerson'
-      }, function(err, author) {
+      }, function (err, author) {
         if (err) {
           throw err;
         }
@@ -751,13 +753,13 @@ describe('restify-mongoose', function () {
   });
 
   describe('insert', function () {
-    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    before(mongoTest.prepareDb(MONGO_URI));
     after(mongoTest.disconnect());
 
     it('should create note', function (done) {
       request(server())
         .post('/notes')
-        .send({title: 'Buy a ukulele', date: new Date()})
+        .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(201)
         .expect(function (res) {
@@ -779,7 +781,7 @@ describe('restify-mongoose', function () {
 
       request(svr)
         .post('/notes')
-        .send({title: 'Buy a ukulele', date: new Date()})
+        .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(201)
         .expect(function (res) {
@@ -793,13 +795,12 @@ describe('restify-mongoose', function () {
     it('should respond with 400 if not valid', function (done) {
       request(server())
         .post('/notes')
-        .send({title: 'Buy a ukulele'})
+        .send({ title: 'Buy a ukulele' })
         .expect('Content-Type', /json/)
         .expect(function (res) {
           res.headers.should.not.have.property("location");
         })
         .expect(400)
-        .expect(/Validation failed/)
         .end(done);
     });
 
@@ -815,7 +816,7 @@ describe('restify-mongoose', function () {
 
       request(svr)
         .post('/notes')
-        .send({title: 'Buy a ukulele', date: new Date()})
+        .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(201)
         .expect(function () {
@@ -826,9 +827,9 @@ describe('restify-mongoose', function () {
     });
 
     it('should return location URL including baseUrl if baseUrl defined in options', function (done) {
-      request(server({baseUrl: 'http://example.com'}))
+      request(server({ baseUrl: 'http://example.com' }))
         .post('/notes')
-        .send({title: 'Buy a ukulele', date: new Date()})
+        .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(201)
         .expect(function (res) {
@@ -841,7 +842,7 @@ describe('restify-mongoose', function () {
     it('should return location URL without baseUrl if baseUrl missing in options', function (done) {
       request(server())
         .post('/notes')
-        .send({title: 'Buy a ukulele', date: new Date()})
+        .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(201)
         .expect(function (res) {
@@ -853,7 +854,7 @@ describe('restify-mongoose', function () {
   });
 
   describe('update', function () {
-    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    before(mongoTest.prepareDb(MONGO_URI));
     after(mongoTest.disconnect());
 
     it('should update existing note', function (done) {
@@ -869,7 +870,7 @@ describe('restify-mongoose', function () {
 
         request(server())
           .patch('/notes/' + note.id)
-          .send({title: 'Buy a ukulele'})
+          .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
           .expect(200)
           .expect(function (res) {
@@ -903,7 +904,7 @@ describe('restify-mongoose', function () {
 
         request(svr)
           .patch('/notes/' + note.id)
-          .send({title: 'Buy a ukulele'})
+          .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
           .expect(function (res) {
             res.headers.should.have.property("location");
@@ -941,7 +942,7 @@ describe('restify-mongoose', function () {
 
       request(server())
         .patch('/notes/' + id.toString())
-        .send({title: 'Buy a guitar'})
+        .send({ title: 'Buy a guitar' })
         .expect('Content-Type', /json/)
         .expect(404)
         .expect(function (res) {
@@ -963,13 +964,13 @@ describe('restify-mongoose', function () {
 
         var svr = server({
           filter: function () {
-            return {"title": "doesNotExists"};
+            return { "title": "doesNotExists" };
           }
         });
 
         request(svr)
           .patch('/notes/' + note.id)
-          .send({title: 'Buy a ukulele'})
+          .send({ title: 'Buy a ukulele' })
           .expect(function (res) {
             res.headers.should.not.have.property("location");
           })
@@ -1000,7 +1001,7 @@ describe('restify-mongoose', function () {
 
         request(svr)
           .patch('/notes/' + note.id)
-          .send({title: 'Buy a ukulele'})
+          .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
           .expect(function (res) {
             res.headers.should.have.property("location");
@@ -1026,9 +1027,9 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        request(server({baseUrl: 'http://example.com'}))
+        request(server({ baseUrl: 'http://example.com' }))
           .patch('/notes/' + note.id)
-          .send({title: 'Buy a ukulele'})
+          .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
           .expect(200)
           .expect(function (res) {
@@ -1052,7 +1053,7 @@ describe('restify-mongoose', function () {
 
         request(server())
           .patch('/notes/' + note.id)
-          .send({title: 'Buy a ukulele'})
+          .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
           .expect(200)
           .expect(function (res) {
@@ -1065,7 +1066,7 @@ describe('restify-mongoose', function () {
   });
 
   describe('delete', function () {
-    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    before(mongoTest.prepareDb(MONGO_URI));
     after(mongoTest.disconnect());
 
     it('should delete existing note', function (done) {
@@ -1092,7 +1093,7 @@ describe('restify-mongoose', function () {
 
       request(server())
         .del('/notes/' + id.toString())
-        .send({title: 'Buy a guitar'})
+        .send({ title: 'Buy a guitar' })
         .expect('Content-Type', /json/)
         .expect(404)
         .end(done);
@@ -1111,7 +1112,7 @@ describe('restify-mongoose', function () {
 
         var svr = server({
           filter: function () {
-            return {"title": "doesNotExists"};
+            return { "title": "doesNotExists" };
           }
         });
 
@@ -1175,7 +1176,7 @@ describe('restify-mongoose', function () {
       };
     };
 
-    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    before(mongoTest.prepareDb(MONGO_URI));
     after(mongoTest.disconnect());
 
     it('should return query notes', function (done) {
@@ -1250,7 +1251,7 @@ describe('restify-mongoose', function () {
 
       request(svr)
         .post('/servenotes')
-        .send({title: 'Buy a ukulele', date: new Date()})
+        .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(201)
         .expect(function (res) {
@@ -1278,7 +1279,7 @@ describe('restify-mongoose', function () {
 
       request(svr)
         .post('/servenotes')
-        .send({title: 'Buy a ukulele', date: new Date()})
+        .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(201)
         .expect(function (res) {
@@ -1311,7 +1312,7 @@ describe('restify-mongoose', function () {
 
         request(svr)
           .patch('/servenotes/' + note.id)
-          .send({title: 'Buy a ukulele'})
+          .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
           .expect(200)
           .expect(function (res) {
@@ -1349,7 +1350,7 @@ describe('restify-mongoose', function () {
 
         request(svr)
           .patch('/servenotes/' + note.id)
-          .send({title: 'Buy a ukulele'})
+          .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
           .expect(200)
           .expect(function (res) {
@@ -1397,7 +1398,7 @@ describe('restify-mongoose', function () {
 
       request(svr)
         .post('/servenotes')
-        .send({title: 'Buy a ukulele without middleware', date: new Date()})
+        .send({ title: 'Buy a ukulele without middleware', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(201)
         .expect(function (res) {
@@ -1421,7 +1422,7 @@ describe('restify-mongoose', function () {
 
       request(svr)
         .post('/servenotes')
-        .send({title: 'Buy a ukulele', date: new Date()})
+        .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(201)
         .expect(function () {
@@ -1445,7 +1446,7 @@ describe('restify-mongoose', function () {
 
       request(svr)
         .post('/servenotes')
-        .send({title: 'Buy a ukulele', date: new Date()})
+        .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(201)
         .expect(function () {
@@ -1456,13 +1457,13 @@ describe('restify-mongoose', function () {
   });
 
   describe('output formats', function () {
-    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    before(mongoTest.prepareDb(MONGO_URI));
     after(mongoTest.disconnect());
 
     it('should return json-api format if defined in options', function (done) {
-      request(server({outputFormat: 'json-api'}))
+      request(server({ outputFormat: 'json-api' }))
         .post('/notes')
-        .send({title: 'Buy a ukulele', date: new Date()})
+        .send({ title: 'Buy a ukulele', date: new Date() })
         .expect('Content-Type', /json/)
         .expect(201)
         .expect(function (res) {
@@ -1475,7 +1476,7 @@ describe('restify-mongoose', function () {
   });
 
   describe('errors', function () {
-    before(mongoTest.prepareDb('mongodb://localhost/restify-mongoose-tests'));
+    before(mongoTest.prepareDb(MONGO_URI));
     after(mongoTest.disconnect());
 
     it('should serve mongoose validation errors as errors property in body for create', function (done) {
@@ -1508,7 +1509,7 @@ describe('restify-mongoose', function () {
 
         request(svr)
           .patch('/servenotes/' + note.id)
-          .send({title: '', date: new Date()})
+          .send({ title: '', date: new Date() })
           .expect('Content-Type', /json/)
           .expect(400)
           .expect(function (res) {

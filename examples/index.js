@@ -5,16 +5,16 @@ var mongoose = require('mongoose');
 var restifyMongoose = require('../index.js');
 var models = require('./models');
 
-mongoose.connect('mongodb://localhost/restify-mongoose-examples');
+mongoose.connect('mongodb://surfista:1QAZxsw2@ds117148.mlab.com:17148/example');
 
 var server = restify.createServer({
   name: 'restify.mongoose.examples.notes',
   version: '1.0.0'
 });
 
-server.use(restify.acceptParser(server.acceptable));
-server.use(restify.queryParser());
-server.use(restify.bodyParser());
+server.use(restify.plugins.acceptParser(server.acceptable));
+server.use(restify.plugins.queryParser());
+server.use(restify.plugins.bodyParser());
 
 var notes = restifyMongoose(models.Note);
 
@@ -29,7 +29,7 @@ server.del('/notes/:id', notes.remove());
 restifyMongoose(models.Note).serve('/api/notes', server);
 
 // Public route to serve angular.js app and html/js/css files
-server.get(/.*/, restify.serveStatic({
+server.get(/.*/, restify.plugins.serveStatic({
   directory: 'public',
   default: 'index.html'
 }));
