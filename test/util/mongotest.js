@@ -1,7 +1,7 @@
 'use strict';
-var assert = require('assert');
-var mongoose = require('mongoose');
-var async = require('async');
+const assert = require('assert');
+const mongoose = require('mongoose');
+const async = require('async');
 
 function dropCollections(collections, index, cb) {
   if (typeof(index) === 'function') {
@@ -34,7 +34,7 @@ module.exports = {
         mongoose.connection.db.collections(function(err, collections) {
           assert.ifError(err);
 
-          var collectionsToDrop = collections
+          const collectionsToDrop = collections
             .filter(function(col) { return col.collectionName.indexOf('system.') !== 0; })
             .map(function(col) { return col.collectionName; });
 
@@ -45,9 +45,9 @@ module.exports = {
   },
 
   populate: function() {
-    var args = Array.prototype.slice.call(arguments);
-    var Constructor = args[0];
-    var instances = args.slice(1, args.length);
+    const args = Array.prototype.slice.call(arguments);
+    const Constructor = args[0];
+    const instances = args.slice(1, args.length);
 
     return function(cb) {
       async.eachSeries(instances, function(instance, next) {

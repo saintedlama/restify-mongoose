@@ -1,13 +1,13 @@
 'use strict';
 require("should");
 
-var request = require('supertest');
-var mongoose = require('mongoose');
-var restifyMongoose = require('../index');
-var server = require('./server');
-var Note = require('./note');
-var Author = require('./author');
-var mongoTest = require('./util/mongotest');
+const request = require('supertest');
+const mongoose = require('mongoose');
+const restifyMongoose = require('../index');
+const server = require('./server');
+const Note = require('./note');
+const Author = require('./author');
+const mongoTest = require('./util/mongotest');
 
 const MONGO_URI = 'mongodb://localhost/restify-mongoose-tests';
 
@@ -26,13 +26,13 @@ describe('restify-mongoose', function () {
     before(mongoTest.prepareDb(MONGO_URI));
 
     before(function (done) {
-      var authorsToCreate = [
+      const authorsToCreate = [
         { name: 'Test Testerson' },
         { name: 'Conny Contributor' },
         { name: 'Conrad Contributor' }
       ];
 
-      var notesToCreate = [
+      const notesToCreate = [
         { title: 'first', date: new Date() },
         { title: 'second', date: new Date() },
         { title: 'third', date: new Date() }
@@ -123,8 +123,8 @@ describe('restify-mongoose', function () {
     });
 
     it('should populate resources with referenced models according to populate query method option', function (done) {
-      var notes = restifyMongoose(Note);
-      var svr = server(null, false);
+      const notes = restifyMongoose(Note);
+      const svr = server(null, false);
       svr.get('/notes', notes.query({ populate: 'author' }));
       request(svr)
         .get('/notes')
@@ -146,7 +146,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should filter notes according to options', function (done) {
-      var svr = server({
+      const svr = server({
         filter: function () {
           return { "title": "second" };
         }
@@ -232,10 +232,10 @@ describe('restify-mongoose', function () {
     });
 
     it('should emit event after querying notes', function (done) {
-      var svr = server();
+      const svr = server();
 
-      var eventEmitted;
-      var eventArg;
+      let eventEmitted;
+      let eventArg;
       svr.notes.on('query', function (model) {
         eventEmitted = true;
         eventArg = model;
@@ -245,7 +245,7 @@ describe('restify-mongoose', function () {
         .get('/notes')
         .expect('Content-Type', /json/)
         .expect(200)
-        .expect(function (res) {
+        .expect(function () {
           eventEmitted.should.be.ok;
           eventArg.should.be.ok;
         })
@@ -316,7 +316,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should go back to options.pageSize if req.query.pageSize removed', function (done) {
-      var agent = request(server({ pageSize: 1 }));
+      const agent = request(server({ pageSize: 1 }));
       agent.get('/notes?pageSize=3').end(function () {
         agent.get('/notes')
           .expect(200)
@@ -404,7 +404,7 @@ describe('restify-mongoose', function () {
       it('should return total count of models if pageSize set and page selected', assertTotalCount('5', { pageSize: 2 }, '?p=1'));
       it('should return total count of models if query is used', assertTotalCount('3', '', '?q={"content":"a"}'));
       it('should return total count of models if filtering is used', function (done) {
-        var svr = server({
+        const svr = server({
           filter: function () {
             return { "title": "second" };
           }
@@ -628,7 +628,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should respond with 404 if not found', function (done) {
-      var id = new mongoose.Types.ObjectId();
+      const id = new mongoose.Types.ObjectId();
 
       request(server())
         .get('/notes/' + id.toString())
@@ -648,7 +648,7 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var svr = server({
+        const svr = server({
           filter: function () {
             return { "title": "doesNotExists" };
           }
@@ -690,8 +690,8 @@ describe('restify-mongoose', function () {
     });
 
     it('should populate resources with referenced models according to populate detail method option', function (done) {
-      var notes = restifyMongoose(Note);
-      var svr = server(null, false);
+      const notes = restifyMongoose(Note);
+      const svr = server(null, false);
       svr.get('/notes/:id', notes.detail({ populate: 'author' }));
 
       Author.create({
@@ -732,10 +732,10 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var svr = server();
+        const svr = server();
 
-        var eventEmitted;
-        var eventArg;
+        let eventEmitted;
+        let eventArg;
         svr.notes.on('detail', function (model) {
           eventEmitted = true;
           eventArg = model;
@@ -745,7 +745,7 @@ describe('restify-mongoose', function () {
           .get('/notes/' + note.id)
           .expect('Content-Type', /json/)
           .expect(200)
-          .expect(function (res) {
+          .expect(function () {
             eventEmitted.should.be.ok;
             eventArg.should.be.ok;
           })
@@ -771,9 +771,9 @@ describe('restify-mongoose', function () {
     });
 
     it('should create note with beforeSave', function (done) {
-      var svr = server(false);
-      var content = 'Specifically buy a soprano ukulele, the most common kind.';
-      var opts = {
+      const svr = server(false);
+      const content = 'Specifically buy a soprano ukulele, the most common kind.';
+      const opts = {
         beforeSave: function (req, model, cb) {
           model.content = content;
           cb();
@@ -807,10 +807,10 @@ describe('restify-mongoose', function () {
     });
 
     it('should emit event after inserting a note', function (done) {
-      var svr = server();
+      const svr = server();
 
-      var eventEmitted;
-      var eventArg;
+      let eventEmitted;
+      let eventArg;
       svr.notes.on('insert', function (model) {
         eventEmitted = true;
         eventArg = model;
@@ -893,9 +893,9 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var svr = server(false);
-        var content = 'Specifically buy a soprano ukulele, the most common kind.';
-        var opts = {
+        const svr = server(false);
+        const content = 'Specifically buy a soprano ukulele, the most common kind.';
+        const opts = {
           beforeSave: function (req, model, cb) {
             model.content = content;
             cb();
@@ -940,7 +940,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should respond with 404 if not found', function (done) {
-      var id = new mongoose.Types.ObjectId();
+      const id = new mongoose.Types.ObjectId();
 
       request(server())
         .patch('/notes/' + id.toString())
@@ -964,7 +964,7 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var svr = server({
+        const svr = server({
           filter: function () {
             return { "title": "doesNotExists" };
           }
@@ -992,10 +992,10 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var svr = server();
+        const svr = server();
 
-        var eventEmitted;
-        var eventArg;
+        let eventEmitted;
+        let eventArg;
         svr.notes.on('update', function (model) {
           eventEmitted = true;
           eventArg = model;
@@ -1091,7 +1091,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should respond with 404 if not found', function (done) {
-      var id = new mongoose.Types.ObjectId();
+      const id = new mongoose.Types.ObjectId();
 
       request(server())
         .del('/notes/' + id.toString())
@@ -1112,7 +1112,7 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var svr = server({
+        const svr = server({
           filter: function () {
             return { "title": "doesNotExists" };
           }
@@ -1136,10 +1136,10 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var svr = server();
+        const svr = server();
 
-        var eventEmitted;
-        var eventArg;
+        let eventEmitted;
+        let eventArg;
         svr.notes.on('remove', function (model) {
           eventEmitted = true;
           eventArg = model;
@@ -1159,7 +1159,7 @@ describe('restify-mongoose', function () {
   });
 
   describe('serve', function () {
-    var generateOptions = function (beforeCalled, afterCalled) {
+    const generateOptions = function (beforeCalled, afterCalled) {
       return {
         before: [function (req, res, next) {
           beforeCalled[0] = true;
@@ -1187,16 +1187,16 @@ describe('restify-mongoose', function () {
         date: new Date(),
         tags: ['a', 'b', 'c'],
         content: 'Content'
-      }, function (err, note) {
+      }, function (err) {
         if (err) {
           throw err;
         }
 
-        var beforeCalled = [false, false];
-        var afterCalled = [false, false];
-        var options = generateOptions(beforeCalled, afterCalled);
+        const beforeCalled = [false, false];
+        const afterCalled = [false, false];
+        const options = generateOptions(beforeCalled, afterCalled);
 
-        var svr = server(false);
+        const svr = server(false);
         svr.notes.serve('/servenotes', svr, options);
 
         request(svr)
@@ -1223,11 +1223,11 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var beforeCalled = [false, false];
-        var afterCalled = [false, false];
-        var options = generateOptions(beforeCalled, afterCalled);
+        const beforeCalled = [false, false];
+        const afterCalled = [false, false];
+        const options = generateOptions(beforeCalled, afterCalled);
 
-        var svr = server(false);
+        const svr = server(false);
         svr.notes.serve('/servenotes', svr, options);
 
         request(svr)
@@ -1244,11 +1244,11 @@ describe('restify-mongoose', function () {
     });
 
     it('should create note', function (done) {
-      var beforeCalled = [false, false];
-      var afterCalled = [false, false];
-      var options = generateOptions(beforeCalled, afterCalled);
+      const beforeCalled = [false, false];
+      const afterCalled = [false, false];
+      const options = generateOptions(beforeCalled, afterCalled);
 
-      var svr = server(false);
+      const svr = server(false);
       svr.notes.serve('/servenotes', svr, options);
 
       request(svr)
@@ -1265,18 +1265,18 @@ describe('restify-mongoose', function () {
     });
 
     it('should create note with beforeSave', function (done) {
-      var beforeCalled = [false, false];
-      var afterCalled = [false, false];
-      var options = generateOptions(beforeCalled, afterCalled);
+      const beforeCalled = [false, false];
+      const afterCalled = [false, false];
+      const options = generateOptions(beforeCalled, afterCalled);
 
-      var svrOptions = {};
-      var content = 'Specifically buy a soprano ukulele, the most common kind.';
+      const svrOptions = {};
+      const content = 'Specifically buy a soprano ukulele, the most common kind.';
       svrOptions.beforeSave = function (req, model, cb) {
         model.content = content;
         cb();
       };
 
-      var svr = server(svrOptions, false);
+      const svr = server(svrOptions, false);
       svr.notes.serve('/servenotes', svr, options);
 
       request(svr)
@@ -1305,11 +1305,11 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var beforeCalled = [false, false];
-        var afterCalled = [false, false];
-        var options = generateOptions(beforeCalled, afterCalled);
+        const beforeCalled = [false, false];
+        const afterCalled = [false, false];
+        const options = generateOptions(beforeCalled, afterCalled);
 
-        var svr = server(false);
+        const svr = server(false);
         svr.notes.serve('/servenotes', svr, options);
 
         request(svr)
@@ -1317,7 +1317,7 @@ describe('restify-mongoose', function () {
           .send({ title: 'Buy a ukulele' })
           .expect('Content-Type', /json/)
           .expect(200)
-          .expect(function (res) {
+          .expect(function () {
             beforeCalled.should.matchEach(true);
             afterCalled.should.matchEach(true);
           })
@@ -1336,18 +1336,18 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var beforeCalled = [false, false];
-        var afterCalled = [false, false];
-        var options = generateOptions(beforeCalled, afterCalled);
+        const beforeCalled = [false, false];
+        const afterCalled = [false, false];
+        const options = generateOptions(beforeCalled, afterCalled);
 
-        var svrOptions = {};
-        var content = 'Specifically buy a soprano ukulele, the most common kind.';
+        const svrOptions = {};
+        const content = 'Specifically buy a soprano ukulele, the most common kind.';
         svrOptions.beforeSave = function (req, model, cb) {
           model.content = content;
           cb();
         };
 
-        var svr = server(svrOptions, false);
+        const svr = server(svrOptions, false);
         svr.notes.serve('/servenotes', svr, options);
 
         request(svr)
@@ -1375,18 +1375,18 @@ describe('restify-mongoose', function () {
           throw err;
         }
 
-        var beforeCalled = [false, false];
-        var afterCalled = [false, false];
-        var options = generateOptions(beforeCalled, afterCalled);
+        const beforeCalled = [false, false];
+        const afterCalled = [false, false];
+        const options = generateOptions(beforeCalled, afterCalled);
 
-        var svr = server(false);
+        const svr = server(false);
         svr.notes.serve('/servenotes', svr, options);
 
         request(svr)
           .del('/servenotes/' + note.id)
           .expect('Content-Type', /json/)
           .expect(200)
-          .expect(function (res) {
+          .expect(function () {
             beforeCalled.should.matchEach(true);
             afterCalled.should.matchEach(true);
           })
@@ -1395,7 +1395,7 @@ describe('restify-mongoose', function () {
     });
 
     it('should not require "before" or "after" middleware', function (done) {
-      var svr = server(false);
+      const svr = server(false);
       svr.notes.serve('/servenotes', svr, {});
 
       request(svr)
@@ -1410,16 +1410,16 @@ describe('restify-mongoose', function () {
     });
 
     it('should allow to pass a single "before" middleware as non array', function (done) {
-      var beforeCalled = false;
+      let beforeCalled = false;
 
-      var options = {
+      const options = {
         before: function (req, res, next) {
           beforeCalled = true;
           next();
         }
       };
 
-      var svr = server(false);
+      const svr = server(false);
       svr.notes.serve('/servenotes', svr, options);
 
       request(svr)
@@ -1434,16 +1434,16 @@ describe('restify-mongoose', function () {
     });
 
     it('should allow to pass a single "after" middleware as non array', function (done) {
-      var afterCalled = false;
+      let afterCalled = false;
 
-      var options = {
+      const options = {
         after: function (req, res, next) {
           afterCalled = true;
           next();
         }
       };
 
-      var svr = server(false);
+      const svr = server(false);
       svr.notes.serve('/servenotes', svr, options);
 
       request(svr)
@@ -1506,7 +1506,7 @@ describe('restify-mongoose', function () {
         if (err) {
           throw err;
         }
-        var svr = server(false);
+        const svr = server(false);
         svr.notes.serve('/servenotes', svr);
 
         request(svr)

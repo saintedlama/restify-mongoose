@@ -1,9 +1,9 @@
-var mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
-var AuthorSchema = new mongoose.Schema({
+const AuthorSchema = new mongoose.Schema({
   name : { type : String, required : true }
 });
 
-var Author = mongoose.model('author', AuthorSchema);
+const Author = mongoose.model('author', AuthorSchema);
 
 module.exports = Author;
