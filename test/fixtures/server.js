@@ -1,6 +1,6 @@
-var restify = require('restify');
-var restifyMongoose = require('../index');
-var Note = require('./note');
+const restify = require('restify');
+const restifyMongoose = require('../../');
+const Note = require('./note');
 
 module.exports = function(options, routes) {
   if (routes === undefined) {
@@ -9,7 +9,7 @@ module.exports = function(options, routes) {
   if (typeof options === 'boolean') {
     routes = options;
   }
-  var server = restify.createServer({
+  const server = restify.createServer({
     name: 'restify.mongoose.examples.notes',
     version: '1.0.0'
   });
@@ -18,7 +18,7 @@ module.exports = function(options, routes) {
   server.use(restify.plugins.queryParser());
   server.use(restify.plugins.bodyParser());
 
-  var notes = restifyMongoose(Note, options);
+  const notes = restifyMongoose(Note, options);
 
   // Serve model Notes as a REST API
   if (routes) {

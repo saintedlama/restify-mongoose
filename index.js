@@ -1,31 +1,29 @@
 'use strict';
-var async = require('async');
-var restify = require('restify');
+const async = require('async');
+const restifyErrors = require('restify-errors');
 
-var restifyErrors = require('restify-errors');
+const util = require('util');
+const url = require('url');
+const EventEmitter = require('events').EventEmitter;
 
-var util = require('util');
-var url = require('url');
-var EventEmitter = require('events').EventEmitter;
-
-var restifyError = function (err) {
+const restifyError = function (err) {
 
   if ('ValidationError' !== err.name) {
     return err;
   }
 
-  var returnError = new restifyErrors.InvalidContentError({
+  const returnError = new restifyErrors.InvalidContentError({
     message: 'ValidationError',
   });
 
   returnError.toJSON = function () {
-      return {...this.body, errors: err.errors};
+      return Object.assign({}, this.body, { errors: err.errors });
   };
 
   return returnError;
 };
 
-var emitEvent = function (self, event) {
+const emitEvent = function (self, event) {
   return function (model, cb) {
     self.emit(event, model);
 
@@ -35,10 +33,10 @@ var emitEvent = function (self, event) {
   };
 };
 
-var sendData = function (res, format, modelName, status) {
+const sendData = function (res, format, modelName, status) {
   return function (model, cb) {
     if (format === 'json-api') {
-      var responseObj = {};
+      const responseObj = {};
       responseObj[modelName] = model;
       res.json(status, responseObj);
     }
@@ -49,7 +47,7 @@ var sendData = function (res, format, modelName, status) {
   };
 };
 
-var execQueryWithTotCount = function (query, countQuery) {
+const execQueryWithTotCount = function (query, countQuery) {
   return function (cb) {
     async.parallel({
       models: function (callback) {
@@ -71,13 +69,13 @@ var execQueryWithTotCount = function (query, countQuery) {
   };
 };
 
-var execQuery = function (query) {
+const execQuery = function (query) {
   return function (cb) {
     query.exec(cb);
   };
 };
 
-var execBeforeSave = function (req, model, beforeSave) {
+const execBeforeSave = function (req, model, beforeSave) {
   if (!beforeSave) {
     beforeSave = function (req, model, cb) {
       cb();
@@ -88,7 +86,7 @@ var execBeforeSave = function (req, model, beforeSave) {
   };
 };
 
-var execSave = function (model) {
+const execSave = function (model) {
   return function (cb) {
     model.save(function (err, model) {
       if (err) {
@@ -114,9 +112,9 @@ var execSave = function (model) {
  * @param {Boolean} isNewResource Required. Tells if the resource is new (true, POST) or old (false, PATCH)
  * @param {String} baseUrl Optional. The base URL to prefix with
  */
-var setLocationHeader = function (req, res, isNewResource, baseUrl) {
+const setLocationHeader = function (req, res, isNewResource, baseUrl) {
   return function (model, cb) {
-    var url = baseUrl + req.url;
+    let url = baseUrl + req.url;
     if (isNewResource) {
       url = url + '/' + model._id;
     }
@@ -125,9 +123,9 @@ var setLocationHeader = function (req, res, isNewResource, baseUrl) {
   };
 };
 
-var buildProjections = function (req, projection) {
+const buildProjections = function (req, projection) {
   return function (models, cb) {
-    var iterator = function (model, cb) {
+    const iterator = function (model, cb) {
       projection(req, model, cb);
     };
 
@@ -135,7 +133,7 @@ var buildProjections = function (req, projection) {
   };
 };
 
-var buildProjection = function (req, projection) {
+const buildProjection = function (req, projection) {
   return function (model, cb) {
     if (!model) {
       return cb(new restifyErrors.ResourceNotFoundError(req.params.id));
@@ -145,22 +143,22 @@ var buildProjection = function (req, projection) {
   };
 };
 
-var parseCommaParam = function (commaParam) {
+const parseCommaParam = function (commaParam) {
   return commaParam.replace(/,/g, ' ');
 };
 
-var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
+const applyPageLinks = function (req, res, page, pageSize, baseUrl) {
   function makeLink(page, rel) {
-    var path = url.parse(req.url, true);
+    const path = url.parse(req.url, true);
     path.query.p = page;
     delete path.search; // required for url.format to re-generate querystring
-    var href = baseUrl + url.format(path);
+    const href = baseUrl + url.format(path);
     return util.format('<%s>; rel="%s"', href, rel);
   }
 
   return function applyPageLinksInner(models, totalCount, cb) {
     // rel: first
-    var link = makeLink(0, 'first');
+    let link = makeLink(0, 'first');
 
     // rel: prev
     if (page > 0) {
@@ -168,7 +166,7 @@ var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
     }
 
     // rel: next
-    var moreResults = models.length > pageSize;
+    const moreResults = models.length > pageSize;
     if (moreResults) {
       models.pop();
 
@@ -176,7 +174,7 @@ var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
     }
 
     // rel: last
-    var lastPage = 0;
+    let lastPage = 0;
     if (pageSize > 0) {
       lastPage = Math.ceil(totalCount / pageSize) - 1;
       link += ', ' + makeLink(lastPage, 'last');
@@ -188,7 +186,7 @@ var applyPageLinks = function (req, res, page, pageSize, baseUrl) {
   };
 };
 
-var applyTotalCount = function (res) {
+const applyTotalCount = function (res) {
   return function applyTotalCountInner(models, totalCount, cb) {
     res.setHeader('X-Total-Count', totalCount);
 
@@ -196,29 +194,29 @@ var applyTotalCount = function (res) {
   };
 };
 
-var applySelect = function (query, options, req) {
+const applySelect = function (query, options, req) {
   //options select overrides request select
-  var select = options.select || req.query.select;
+  const select = options.select || req.query.select;
   if (select) {
     query = query.select(parseCommaParam(select));
   }
 };
 
-var applyPopulate = function (query, options, req) {
-  var populate = req.query.populate || options.populate;
+const applyPopulate = function (query, options, req) {
+  const populate = req.query.populate || options.populate;
   if (populate) {
     query = query.populate(parseCommaParam(populate));
   }
 };
 
-var applySort = function (query, options, req) {
-  var sort = req.query.sort || options.sort;
+const applySort = function (query, options, req) {
+  const sort = req.query.sort || options.sort;
   if (sort) {
     query = query.sort(parseCommaParam(sort));
   }
 };
 
-var Resource = function (Model, options) {
+const Resource = function (Model, options) {
   EventEmitter.call(this);
   this.Model = Model;
 
@@ -240,7 +238,7 @@ var Resource = function (Model, options) {
 util.inherits(Resource, EventEmitter);
 
 Resource.prototype.query = function (options) {
-  var self = this;
+  const self = this;
 
   options = options || {};
   options.pageSize = options.pageSize || this.options.pageSize;
@@ -254,12 +252,12 @@ Resource.prototype.query = function (options) {
   options.sort = options.sort || this.options.sort;
 
   return function (req, res, next) {
-    var query = self.Model.find({});
-    var countQuery = self.Model.find({});
+    let query = self.Model.find({});
+    let countQuery = self.Model.find({});
 
     if (req.query.q) {
       try {
-        var q = JSON.parse(req.query.q);
+        const q = JSON.parse(req.query.q);
         query = query.where(q);
         countQuery = countQuery.where(q);
       } catch (err) {
@@ -276,11 +274,11 @@ Resource.prototype.query = function (options) {
       countQuery = countQuery.where(self.options.filter(req, res));
     }
 
-    var page = Number(req.query.p) >= 0 ? Number(req.query.p) : 0;
+    const page = Number(req.query.p) >= 0 ? Number(req.query.p) : 0;
 
     // pageSize parameter in queryString overrides one in the code. Must be number between [1-options.maxPageSize]
-    var requestedPageSize = Number(req.query.pageSize) > 0 ? Number(req.query.pageSize) : options.pageSize;
-    var pageSize = Math.min(requestedPageSize, options.maxPageSize);
+    const requestedPageSize = Number(req.query.pageSize) > 0 ? Number(req.query.pageSize) : options.pageSize;
+    const pageSize = Math.min(requestedPageSize, options.maxPageSize);
 
     query.skip(pageSize * page);
     query.limit(pageSize + 1);
@@ -297,7 +295,7 @@ Resource.prototype.query = function (options) {
 };
 
 Resource.prototype.detail = function (options) {
-  var self = this;
+  const self = this;
 
   options = options || {};
   options.projection = options.projection || this.options.detailProjection;
@@ -307,10 +305,10 @@ Resource.prototype.detail = function (options) {
   options.select = options.select || this.options.select;
 
   return function (req, res, next) {
-    var find = {};
+    const find = {};
     find[self.options.queryString] = req.params.id;
 
-    var query = self.Model.findOne(find);
+    let query = self.Model.findOne(find);
 
     applySelect(query, options, req);
     applyPopulate(query, options, req);
@@ -329,7 +327,7 @@ Resource.prototype.detail = function (options) {
 };
 
 Resource.prototype.insert = function (options) {
-  var self = this;
+  const self = this;
 
   options = options || {};
   options.baseUrl = options.baseUrl || this.options.baseUrl;
@@ -338,7 +336,7 @@ Resource.prototype.insert = function (options) {
   options.modelName = options.modelName || this.options.modelName;
 
   return function (req, res, next) {
-    var model = new self.Model(req.body);
+    const model = new self.Model(req.body);
     async.waterfall([
       execBeforeSave(req, model, options.beforeSave),
       execSave(model),
@@ -350,7 +348,7 @@ Resource.prototype.insert = function (options) {
 };
 
 Resource.prototype.update = function (options) {
-  var self = this;
+  const self = this;
 
   options = options || {};
   options.baseUrl = options.baseUrl || this.options.baseUrl;
@@ -359,10 +357,10 @@ Resource.prototype.update = function (options) {
   options.modelName = options.modelName || this.options.modelName;
 
   return function (req, res, next) {
-    var find = {};
+    const find = {};
     find[self.options.queryString] = req.params.id;
 
-    var query = self.Model.findOne(find);
+    let query = self.Model.findOne(find);
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
@@ -395,14 +393,14 @@ Resource.prototype.update = function (options) {
 };
 
 Resource.prototype.remove = function () {
-  var self = this;
-  var emitRemove = emitEvent(self, 'remove');
+  const self = this;
+  const emitRemove = emitEvent(self, 'remove');
 
   return function (req, res, next) {
-    var find = {};
+    const find = {};
     find[self.options.queryString] = req.params.id;
 
-    var query = self.Model.findOne(find);
+    let query = self.Model.findOne(find);
 
     if (self.options.filter) {
       query = query.where(self.options.filter(req, res));
@@ -433,8 +431,8 @@ Resource.prototype.serve = function (path, server, options) {
 
   options = options || {};
 
-  var handlerChain = function handlerChain(handler, before, after) {
-    var handlers = [];
+  const handlerChain = function handlerChain(handler, before, after) {
+    let handlers = [];
 
     if (before) {
       handlers = handlers.concat(before);
@@ -449,7 +447,7 @@ Resource.prototype.serve = function (path, server, options) {
     return handlers;
   };
 
-  var closedPath = path[path.length - 1] === '/' ? path : path + '/';
+  const closedPath = path[path.length - 1] === '/' ? path : path + '/';
 
   server.get(
     path,

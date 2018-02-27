@@ -1,6 +1,6 @@
-var mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
-var NoteSchema = new mongoose.Schema({
+const NoteSchema = new mongoose.Schema({
   title : { type : String, required : true },
   date : { type : Date, required : true },
   tags : [String],
@@ -15,6 +15,6 @@ var NoteSchema = new mongoose.Schema({
   }]
 });
 
-var Note = mongoose.model('notes', NoteSchema);
+const Note = mongoose.model('notes', NoteSchema);
 
 module.exports = Note;

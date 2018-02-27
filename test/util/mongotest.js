@@ -1,24 +1,6 @@
 'use strict';
-var assert = require('assert');
-var mongoose = require('mongoose');
-var async = require('async');
-
-function dropCollections(collections, index, cb) {
-  if (typeof(index) === 'function') {
-    cb = index;
-    index = 0;
-  }
-
-  if (index < collections.length) {
-    mongoose.connection.db.dropCollection(collections[index], function(err) {
-      assert.ifError(err);
-
-      dropCollections(collections, index + 1, cb);
-    });
-  } else {
-    cb();
-  }
-}
+const mongoose = require('mongoose');
+const async = require('async');
 
 module.exports = {
   prepareDb : function(connectionString, options) {
@@ -29,25 +11,25 @@ module.exports = {
       this.timeout(options.timeout);
 
       mongoose.connect(connectionString, function(err) {
-        assert.ifError(err);
+        if (err) { return cb(err); }
 
         mongoose.connection.db.collections(function(err, collections) {
-          assert.ifError(err);
+          if (err) { return cb(err); }
 
-          var collectionsToDrop = collections
+          const collectionsToDrop = collections
             .filter(function(col) { return col.collectionName.indexOf('system.') !== 0; })
             .map(function(col) { return col.collectionName; });
 
-          dropCollections(collectionsToDrop, 0, cb);
+          async.forEach(collectionsToDrop, (collection, next) => mongoose.connection.db.dropCollection(collection, next), cb);
         });
       });
     };
   },
 
   populate: function() {
-    var args = Array.prototype.slice.call(arguments);
-    var Constructor = args[0];
-    var instances = args.slice(1, args.length);
+    const args = Array.prototype.slice.call(arguments);
+    const Constructor = args[0];
+    const instances = args.slice(1, args.length);
 
     return function(cb) {
       async.eachSeries(instances, function(instance, next) {
