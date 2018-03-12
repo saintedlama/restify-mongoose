@@ -7,7 +7,7 @@ const restifyMongoose = require('../index');
 const server = require('./fixtures/server');
 const Note = require('./fixtures/note');
 const Author = require('./fixtures/author');
-const mongoTest = require('./util/mongotest');
+const dropMongodbCollections = require('drop-mongodb-collections');
 
 const MONGO_URI = 'mongodb://localhost/restify-mongoose-tests';
 
@@ -23,32 +23,32 @@ describe('restify-mongoose', function () {
   });
 
   describe('query', function () {
-    before(mongoTest.prepareDb(MONGO_URI));
+    beforeEach(dropMongodbCollections(MONGO_URI));
+    beforeEach(() => mongoose.connect(MONGO_URI));
 
-    before(function (done) {
+    beforeEach(function () {
       const authorsToCreate = [
         { name: 'Test Testerson' },
         { name: 'Conny Contributor' },
         { name: 'Conrad Contributor' }
       ];
 
-      const notesToCreate = [
-        { title: 'first', date: new Date() },
-        { title: 'second', date: new Date() },
-        { title: 'third', date: new Date() }
-      ];
+      return Author.create(authorsToCreate)
+        .then(authors => {
+          const notesToCreate = [
+            { title: 'first', date: new Date() },
+            { title: 'second', date: new Date() },
+            { title: 'third', date: new Date() }
+          ];
 
-      Author.create(authorsToCreate, function (err, authors) {
-        if (err) { return done(err); }
+          notesToCreate[0].author = authors[0]._id;
+          notesToCreate[0].contributors = [authors[1]._id, authors[2]._id];
 
-        notesToCreate[0].author = authors[0]._id;
-        notesToCreate[0].contributors = [authors[1]._id, authors[2]._id];
-
-        Note.create(notesToCreate, done);
-      });
+          return Note.create(notesToCreate);
+        });
     });
 
-    after(mongoTest.disconnect());
+    afterEach(() => mongoose.disconnect());
 
     it('should return all notes', function (done) {
       request(server())
@@ -80,7 +80,9 @@ describe('restify-mongoose', function () {
         .expect(200)
         .expect(function (res) {
           res.body.should.have.length(3);
-          res.body[0].author.should.be.undef;
+
+          const containsAnyAuthors = res.body.some(post => post.author);
+          containsAnyAuthors.should.be.false;
         })
         .end(done);
     });
@@ -92,7 +94,7 @@ describe('restify-mongoose', function () {
         .expect(200)
         .expect(function (res) {
           res.body.should.have.length(3);
-          res.body[0].author.name.should.equal('Test Testerson');
+          containsAuthor(res.body, 'Test Testerson').should.be.true();
         })
         .end(done);
     });
@@ -104,8 +106,8 @@ describe('restify-mongoose', function () {
         .expect(200)
         .expect(function (res) {
           res.body.should.have.length(3);
-          res.body[0].contributors.should.have.length(2);
-          res.body[0].contributors[0].name.should.equal('Conny Contributor');
+
+          containsContributor(res.body, 'Conny Contributor').should.be.true();
         })
         .end(done);
     });
@@ -132,7 +134,8 @@ describe('restify-mongoose', function () {
         .expect(200)
         .expect(function (res) {
           res.body.should.have.length(3);
-          res.body[0].author.name.should.equal('Test Testerson');
+
+          containsAuthor(res.body, 'Test Testerson').should.be.true;
         })
         .end(done);
     });
@@ -254,8 +257,9 @@ describe('restify-mongoose', function () {
   });
 
   describe('pagination', function () {
-    before(mongoTest.prepareDb(MONGO_URI));
-    before(mongoTest.populate(Note,
+    beforeEach(dropMongodbCollections(MONGO_URI));
+    beforeEach(() => mongoose.connect(MONGO_URI));
+    beforeEach(() => Note.create(
       { title: 'first', content: 'a', date: new Date() },
       { title: 'second', content: 'a', date: new Date() },
       { title: 'third', content: 'a', date: new Date() },
@@ -263,7 +267,7 @@ describe('restify-mongoose', function () {
       { title: 'fifth', content: 'b', date: new Date() }
     ));
 
-    after(mongoTest.disconnect());
+    afterEach(() => mongoose.disconnect());
 
     it('should limit notes returned to pageSize', function (done) {
       request(server({ pageSize: 2 }))
@@ -380,25 +384,25 @@ describe('restify-mongoose', function () {
       };
     }
 
-    function assertTotalCount(expectedResult, options, queryString) {
-      return function (done) {
-        request(server(options))
-          .get('/notes' + queryString)
-          .expect(200)
-          .expect(function (res) {
-            res.headers.should.have.property("x-total-count");
-            res.headers['x-total-count'].should.be.exactly(expectedResult);
-          })
-          .end(done);
-      };
-    }
-
-    it('should respond with first page given no page parameter', assertFirstPage(''));
-    it('should respond with first page given blank page parameter', assertFirstPage('?p='));
-    it('should respond with first page given invalid page parameter', assertFirstPage('?p=abcd'));
-    it('should respond with first page given negative page number', assertFirstPage('?p=-123'));
+    it('should respond with first page given no page parameter', assertFirstPage('?sort=_id'));
+    it('should respond with first page given blank page parameter', assertFirstPage('?sort=_id&p='));
+    it('should respond with first page given invalid page parameter', assertFirstPage('?sort=_id&p=abcd'));
+    it('should respond with first page given negative page number', assertFirstPage('?sort=_id&p=-123'));
 
     describe('total count header', function () {
+      function assertTotalCount(expectedResult, options, queryString) {
+        return function (done) {
+          request(server(options))
+            .get('/notes' + queryString)
+            .expect(200)
+            .expect(function (res) {
+              res.headers.should.have.property("x-total-count");
+              res.headers['x-total-count'].should.be.exactly(expectedResult);
+            })
+            .end(done);
+        };
+      }
+
       it('should return total count of models if no pagination used', assertTotalCount('5', '', ''));
       it('should return total count of models if pageSize set but no page selected', assertTotalCount('5', { pageSize: 2 }, ''));
       it('should return total count of models if pageSize set and page selected', assertTotalCount('5', { pageSize: 2 }, '?p=1'));
@@ -577,8 +581,9 @@ describe('restify-mongoose', function () {
   });
 
   describe('detail', function () {
-    before(mongoTest.prepareDb(MONGO_URI));
-    after(mongoTest.disconnect());
+    beforeEach(dropMongodbCollections(MONGO_URI));
+    beforeEach(() => mongoose.connect(MONGO_URI));
+    afterEach(() => mongoose.disconnect());
 
     it('should select detail note', function (done) {
       Note.create({
@@ -755,8 +760,9 @@ describe('restify-mongoose', function () {
   });
 
   describe('insert', function () {
-    before(mongoTest.prepareDb(MONGO_URI));
-    after(mongoTest.disconnect());
+    beforeEach(dropMongodbCollections(MONGO_URI));
+    beforeEach(() => mongoose.connect(MONGO_URI));
+    afterEach(() => mongoose.disconnect());
 
     it('should create note', function (done) {
       request(server())
@@ -856,8 +862,9 @@ describe('restify-mongoose', function () {
   });
 
   describe('update', function () {
-    before(mongoTest.prepareDb(MONGO_URI));
-    after(mongoTest.disconnect());
+    beforeEach(dropMongodbCollections(MONGO_URI));
+    beforeEach(() => mongoose.connect(MONGO_URI));
+    afterEach(() => mongoose.disconnect());
 
     it('should update existing note', function (done) {
       Note.create({
@@ -1068,8 +1075,9 @@ describe('restify-mongoose', function () {
   });
 
   describe('delete', function () {
-    before(mongoTest.prepareDb(MONGO_URI));
-    after(mongoTest.disconnect());
+    beforeEach(dropMongodbCollections(MONGO_URI));
+    beforeEach(() => mongoose.connect(MONGO_URI));
+    afterEach(() => mongoose.disconnect());
 
     it('should delete existing note', function (done) {
       Note.create({
@@ -1178,8 +1186,9 @@ describe('restify-mongoose', function () {
       };
     };
 
-    before(mongoTest.prepareDb(MONGO_URI));
-    after(mongoTest.disconnect());
+    beforeEach(dropMongodbCollections(MONGO_URI));
+    beforeEach(() => mongoose.connect(MONGO_URI));
+    afterEach(() => mongoose.disconnect());
 
     it('should return query notes', function (done) {
       Note.create({
@@ -1459,8 +1468,9 @@ describe('restify-mongoose', function () {
   });
 
   describe('output formats', function () {
-    before(mongoTest.prepareDb(MONGO_URI));
-    after(mongoTest.disconnect());
+    beforeEach(dropMongodbCollections(MONGO_URI));
+    beforeEach(() => mongoose.connect(MONGO_URI));
+    afterEach(() => mongoose.disconnect());
 
     it('should return json-api format if defined in options', function (done) {
       request(server({ outputFormat: 'json-api' }))
@@ -1478,8 +1488,9 @@ describe('restify-mongoose', function () {
   });
 
   describe('errors', function () {
-    before(mongoTest.prepareDb(MONGO_URI));
-    after(mongoTest.disconnect());
+    beforeEach(dropMongodbCollections(MONGO_URI));
+    beforeEach(() => mongoose.connect(MONGO_URI));
+    afterEach(() => mongoose.disconnect());
 
     it('should serve mongoose validation errors as errors property in body for create', function (done) {
       request(server())
@@ -1524,3 +1535,11 @@ describe('restify-mongoose', function () {
     });
   });
 });
+
+function containsAuthor(posts, name) {
+  return posts.some(post => post.author && post.author.name === name);
+}
+
+function containsContributor(posts, name) {
+  return posts.some(post => post.contributors && post.contributors.some(contributor => contributor.name === name));
+}
