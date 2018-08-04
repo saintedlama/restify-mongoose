@@ -17,7 +17,7 @@ const restifyError = function (err) {
   });
 
   returnError.toJSON = function () {
-      return Object.assign({}, this.body, { errors: err.errors });
+    return Object.assign({}, this.body, { errors: err.errors });
   };
 
   return returnError;
@@ -54,7 +54,7 @@ const execQueryWithTotCount = function (query, countQuery) {
         query.exec(callback);
       },
       count: function (callback) {
-        countQuery.count(callback);
+        countQuery.countDocuments(callback);
       }
     },
       function (err, results) {
