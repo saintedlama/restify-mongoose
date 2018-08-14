@@ -12,7 +12,7 @@ const dropMongodbCollections = require('drop-mongodb-collections');
 const MONGO_URI = 'mongodb://localhost:27017/restify-mongoose-tests';
 
 describe('restify-mongoose', function () {
-  this.timeout(5000);
+  this.timeout(10000);
 
   describe('constructor', function () {
     it('should throw if no model is given', function () {
