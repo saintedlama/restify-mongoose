@@ -25,7 +25,7 @@
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "changelog": "changelog all -m > CHANGELOG.md"
+    "release": "standard-version"
   },
   "keywords": [
     "restify",
@@ -36,7 +36,7 @@
   "license": "BSD-2-Clause",
   "dependencies": {
     "async": "^2.6.1",
-    "mongoose": "^5.2.6",
+    "mongoose": "^5.2.7",
     "restify": "^7.2.1",
     "restify-errors": "^6.1.1"
   },
@@ -50,7 +50,8 @@
     "nyc": "^12.0.2",
     "shelljs": "^0.8.2",
     "should": "^13.2.3",
-    "sinon": "^6.1.4",
+    "sinon": "^6.1.5",
+    "standard-version": "^4.4.0",
     "supertest": "^3.1.0"
   },
   "bugs": "https://github.com/saintedlama/restify-mongoose/issues",
