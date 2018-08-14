@@ -119,7 +119,7 @@ describe('restify-mongoose', function () {
         .expect(200)
         .expect(function (res) {
           res.body.should.have.length(3);
-          res.body[0].author.name.should.equal('Test Testerson');
+          containsAuthor(res.body, 'Test Testerson').should.be.true();
         })
         .end(done);
     });
@@ -134,7 +134,6 @@ describe('restify-mongoose', function () {
         .expect(200)
         .expect(function (res) {
           res.body.should.have.length(3);
-
           containsAuthor(res.body, 'Test Testerson').should.be.true;
         })
         .end(done);
