@@ -28,7 +28,7 @@ const emitEvent = function (self, event) {
     self.emit(event, model);
 
     if (cb) {
-      cb(undefined, model);
+      cb(null, model);
     }
   };
 };
@@ -43,7 +43,7 @@ const sendData = function (res, format, modelName, status) {
     else {
       res.send(status, model);
     }
-    cb(undefined, model);
+    cb(null, model);
   };
 };
 
