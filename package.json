@@ -21,7 +21,7 @@
   ],
   "main": "index.js",
   "scripts": {
-    "test": "cross-env NODE_ENV=test nyc --reporter=text-summary mocha --recursive --throw-deprecation",
+    "test": "nyc --reporter=text-summary mocha --recursive --throw-deprecation",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -42,7 +42,6 @@
   },
   "devDependencies": {
     "coveralls": "^3.0.7",
-    "cross-env": "^6.0.3",
     "drop-mongodb-collections": "^1.2.5",
     "eslint": "^6.5.1",
     "mocha": "^6.2.1",
