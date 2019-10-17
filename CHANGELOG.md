@@ -1,6 +1,21 @@
-# Change Log
+# Changelog
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
+## [5.0.0](https://github.com/saintedlama/restify-mongoose/compare/v4.0.0...v5.0.0) (2019-10-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* node 6, 7 and 9 are not supported anymore
+
+### Bug Fixes
+
+* remove crossenv to avoid breaking builds in node 6 and 7 ([73a7d27](https://github.com/saintedlama/restify-mongoose/commit/73a7d2796dc95efac817984ac5b2df9f2ff281f4))
+* upgrade dependencies to fix vulnerability ([221d326](https://github.com/saintedlama/restify-mongoose/commit/221d3262ebb12f9fd3bebda8e7957cd17ea88ab5))
+
+
+* remove support for node 6, 7 and 9 ([fb5cccb](https://github.com/saintedlama/restify-mongoose/commit/fb5cccb1726758d4afae70dab77d44c0ea06d327))
 
 <a name="4.0.0"></a>
 # [4.0.0](https://github.com/saintedlama/restify-mongoose/compare/v3.0.0...v4.0.0) (2018-08-14)
