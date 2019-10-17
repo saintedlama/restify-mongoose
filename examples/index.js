@@ -5,7 +5,7 @@ var mongoose = require('mongoose');
 var restifyMongoose = require('../index.js');
 var models = require('./models');
 
-mongoose.connect('mongodb://localhost/restify-mongoose-examples', { useNewUrlParser: true });
+mongoose.connect('mongodb://localhost/restify-mongoose-examples', { useNewUrlParser: true, useUnifiedTopology: true });
 
 var server = restify.createServer({
   name: 'restify.mongoose.examples.notes',

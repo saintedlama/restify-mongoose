@@ -24,7 +24,7 @@ describe('restify-mongoose', function () {
 
   describe('query', function () {
     beforeEach(dropMongodbCollections(MONGO_URI));
-    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true }));
+    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }));
 
     beforeEach(function () {
       const authorsToCreate = [
@@ -257,7 +257,7 @@ describe('restify-mongoose', function () {
 
   describe('pagination', function () {
     beforeEach(dropMongodbCollections(MONGO_URI));
-    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true }));
+    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }));
     beforeEach(() => Note.create(
       { title: 'first', content: 'a', date: new Date() },
       { title: 'second', content: 'a', date: new Date() },
@@ -581,7 +581,7 @@ describe('restify-mongoose', function () {
 
   describe('detail', function () {
     beforeEach(dropMongodbCollections(MONGO_URI));
-    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true }));
+    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }));
     afterEach(() => mongoose.disconnect());
 
     it('should select detail note', function (done) {
@@ -760,7 +760,7 @@ describe('restify-mongoose', function () {
 
   describe('insert', function () {
     beforeEach(dropMongodbCollections(MONGO_URI));
-    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true }));
+    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }));
     afterEach(() => mongoose.disconnect());
 
     it('should create note', function (done) {
@@ -862,7 +862,7 @@ describe('restify-mongoose', function () {
 
   describe('update', function () {
     beforeEach(dropMongodbCollections(MONGO_URI));
-    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true }));
+    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }));
     afterEach(() => mongoose.disconnect());
 
     it('should update existing note', function (done) {
@@ -1075,7 +1075,7 @@ describe('restify-mongoose', function () {
 
   describe('delete', function () {
     beforeEach(dropMongodbCollections(MONGO_URI));
-    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true }));
+    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }));
     afterEach(() => mongoose.disconnect());
 
     it('should delete existing note', function (done) {
@@ -1186,7 +1186,7 @@ describe('restify-mongoose', function () {
     };
 
     beforeEach(dropMongodbCollections(MONGO_URI));
-    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true }));
+    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }));
     afterEach(() => mongoose.disconnect());
 
     it('should return query notes', function (done) {
@@ -1468,7 +1468,7 @@ describe('restify-mongoose', function () {
 
   describe('output formats', function () {
     beforeEach(dropMongodbCollections(MONGO_URI));
-    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true }));
+    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }));
     afterEach(() => mongoose.disconnect());
 
     it('should return json-api format if defined in options', function (done) {
@@ -1488,7 +1488,7 @@ describe('restify-mongoose', function () {
 
   describe('errors', function () {
     beforeEach(dropMongodbCollections(MONGO_URI));
-    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true }));
+    beforeEach(() => mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }));
     afterEach(() => mongoose.disconnect());
 
     it('should serve mongoose validation errors as errors property in body for create', function (done) {
