@@ -48,7 +48,7 @@
     "nyc": "^14.1.1",
     "should": "^13.2.3",
     "sinon": "^7.5.0",
-    "standard-version": "^7.0.0",
+    "standard-version": "^8.0.1",
     "supertest": "^4.0.2"
   },
   "bugs": "https://github.com/saintedlama/restify-mongoose/issues",
