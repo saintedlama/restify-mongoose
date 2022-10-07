@@ -25,7 +25,9 @@
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "release": "standard-version"
+    "release": "standard-version",
+    "prepare": "npm run snyk-protect",
+    "snyk-protect": "snyk-protect"
   },
   "keywords": [
     "restify",
@@ -35,10 +37,11 @@
   ],
   "license": "BSD-2-Clause",
   "dependencies": {
-    "async": "^3.1.0",
-    "mongoose": "^5.7.5",
+    "async": "^3.2.2",
+    "mongoose": "^5.13.15",
     "restify": "^8.4.0",
-    "restify-errors": "^8.0.1"
+    "restify-errors": "^8.0.1",
+    "@snyk/protect": "latest"
   },
   "devDependencies": {
     "coveralls": "^3.0.7",
@@ -55,5 +58,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/saintedlama/restify-mongoose.git"
-  }
+  },
+  "snyk": true
 }
