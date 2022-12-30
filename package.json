@@ -44,7 +44,7 @@
     "coveralls": "^3.0.7",
     "drop-mongodb-collections": "^1.2.5",
     "eslint": "^6.5.1",
-    "mocha": "^6.2.1",
+    "mocha": "^10.2.0",
     "nyc": "^14.1.1",
     "should": "^13.2.3",
     "sinon": "^7.5.0",
