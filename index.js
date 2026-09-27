@@ -1,20 +1,15 @@
 'use strict';
-const async = require('async');
-const restifyErrors = require('restify-errors');
 
+const restifyErrors = require('restify-errors');
 const util = require('util');
-const url = require('url');
 const EventEmitter = require('events').EventEmitter;
 
 const restifyError = function (err) {
-
-  if ('ValidationError' !== err.name) {
+  if (!err || 'ValidationError' !== err.name) {
     return err;
   }
 
-  const returnError = new restifyErrors.InvalidContentError({
-    message: 'ValidationError',
-  });
+  const returnError = new restifyErrors.InvalidContentError('ValidationError');
 
   returnError.toJSON = function () {
     return Object.assign({}, this.body, { errors: err.errors });
@@ -23,179 +18,121 @@ const restifyError = function (err) {
   return returnError;
 };
 
-const emitEvent = function (self, event) {
-  return function (model, cb) {
-    self.emit(event, model);
-
-    if (cb) {
-      cb(undefined, model);
-    }
-  };
-};
-
-const sendData = function (res, format, modelName, status) {
-  return function (model, cb) {
-    if (format === 'json-api') {
-      const responseObj = {};
-      responseObj[modelName] = model;
-      res.json(status, responseObj);
-    }
-    else {
-      res.send(status, model);
-    }
-    cb(undefined, model);
-  };
-};
-
-const execQueryWithTotCount = function (query, countQuery) {
-  return function (cb) {
-    async.parallel({
-      models: function (callback) {
-        query.exec(callback);
-      },
-      count: function (callback) {
-        countQuery.countDocuments(callback);
-      }
-    },
-      function (err, results) {
-        if (err) {
-          return cb(restifyError(err));
-        }
-        else {
-          cb(null, results.models, results.count);
-        }
-      });
-
-  };
-};
-
-const execQuery = function (query) {
-  return function (cb) {
-    query.exec(cb);
-  };
-};
-
-const execBeforeSave = function (req, model, beforeSave) {
-  if (!beforeSave) {
-    beforeSave = function (req, model, cb) {
-      cb();
-    };
+const sendData = function (res, format, modelName, status, data) {
+  if (format === 'json-api') {
+    const responseObj = {};
+    responseObj[modelName] = data;
+    res.json(status, responseObj);
+  } else {
+    res.send(status, data);
   }
-  return function (cb) {
-    beforeSave(req, model, cb);
-  };
 };
 
-const execSave = function (model) {
-  return function (cb) {
-    model.save(function (err, model) {
+const runProjection = function (projection, req, model) {
+  return new Promise(function (resolve, reject) {
+    let called = false;
+    const cb = function (err, result) {
+      if (called) {
+        return;
+      }
+      called = true;
       if (err) {
-        return cb(restifyError(err));
+        return reject(err);
       }
-      else {
-        cb(null, model);
-      }
-    });
-  };
-};
-
-/**
- * Sets the Location attribute in the response HTTP Header.
- * Used only in the POST and PATCH requests.
- *
- * URL PATTERN:
- * If PATCH: use the baseUrl + req.url
- * If POST: use the baseUrl + req.url and append model._id
- *
- * @param {Object} req Required. The request object including the req.url parameter
- * @param {Object} res Required. The response object to set the header attribute at
- * @param {Boolean} isNewResource Required. Tells if the resource is new (true, POST) or old (false, PATCH)
- * @param {String} baseUrl Optional. The base URL to prefix with
- */
-const setLocationHeader = function (req, res, isNewResource, baseUrl) {
-  return function (model, cb) {
-    let url = baseUrl + req.url;
-    if (isNewResource) {
-      url = url + '/' + model._id;
-    }
-    res.header('Location', url);
-    cb(null, model);
-  };
-};
-
-const buildProjections = function (req, projection) {
-  return function (models, cb) {
-    const iterator = function (model, cb) {
-      projection(req, model, cb);
+      resolve(result);
     };
 
-    async.map(models, iterator, cb);
-  };
+    try {
+      const res = projection(req, model, cb);
+      if (res && typeof res.then === 'function') {
+        res.then(resolve, reject);
+      }
+    } catch (err) {
+      reject(err);
+    }
+  });
 };
 
-const buildProjection = function (req, projection) {
-  return function (model, cb) {
-    if (!model) {
-      return cb(new restifyErrors.ResourceNotFoundError(req.params.id));
-    }
+const runBeforeSave = function (beforeSave, req, model) {
+  if (!beforeSave) {
+    return Promise.resolve();
+  }
 
-    projection(req, model, cb);
-  };
+  return new Promise(function (resolve, reject) {
+    let called = false;
+    const cb = function (err) {
+      if (called) {
+        return;
+      }
+      called = true;
+      if (err) {
+        return reject(err);
+      }
+      resolve();
+    };
+
+    try {
+      const res = beforeSave(req, model, cb);
+      if (res && typeof res.then === 'function') {
+        res.then(resolve, reject);
+      }
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
+const setLocationHeader = function (req, res, isNewResource, baseUrl, model) {
+  let url = baseUrl + req.url;
+  if (isNewResource) {
+    url = url + '/' + model._id;
+  }
+  res.header('Location', url);
 };
 
 const parseCommaParam = function (commaParam) {
   return commaParam.replace(/,/g, ' ');
 };
 
-const applyPageLinks = function (req, res, page, pageSize, baseUrl) {
-  function makeLink(page, rel) {
-    const path = url.parse(req.url, true);
-    path.query.p = page;
-    delete path.search; // required for url.format to re-generate querystring
-    const href = baseUrl + url.format(path);
+const applyPageLinks = function (req, res, page, pageSize, baseUrl, totalCount, models) {
+  function makeLink(p, rel) {
+    const parsed = new URL(req.url, 'http://localhost');
+    parsed.searchParams.set('p', p);
+    const href = baseUrl + parsed.pathname + parsed.search;
     return util.format('<%s>; rel="%s"', href, rel);
   }
 
-  return function applyPageLinksInner(models, totalCount, cb) {
-    // rel: first
-    let link = makeLink(0, 'first');
+  // rel: first
+  let link = makeLink(0, 'first');
 
-    // rel: prev
-    if (page > 0) {
-      link += ', ' + makeLink(page - 1, 'prev');
-    }
+  // rel: prev
+  if (page > 0) {
+    link += ', ' + makeLink(page - 1, 'prev');
+  }
 
-    // rel: next
-    const moreResults = models.length > pageSize;
-    if (moreResults) {
-      models.pop();
+  // rel: next
+  const moreResults = models.length > pageSize;
+  if (moreResults) {
+    models.pop();
+    link += ', ' + makeLink(page + 1, 'next');
+  }
 
-      link += ', ' + makeLink(page + 1, 'next');
-    }
+  // rel: last
+  let lastPage = 0;
+  if (pageSize > 0) {
+    lastPage = Math.ceil(totalCount / pageSize) - 1;
+    link += ', ' + makeLink(lastPage, 'last');
+  }
 
-    // rel: last
-    let lastPage = 0;
-    if (pageSize > 0) {
-      lastPage = Math.ceil(totalCount / pageSize) - 1;
-      link += ', ' + makeLink(lastPage, 'last');
-    }
-
-    res.setHeader('link', link);
-
-    cb(null, models, totalCount);
-  };
+  res.setHeader('link', link);
 };
 
-const applyTotalCount = function (res) {
-  return function applyTotalCountInner(models, totalCount, cb) {
-    res.setHeader('X-Total-Count', totalCount);
-
-    cb(null, models);
-  };
+const applyTotalCount = function (res, totalCount) {
+  res.setHeader('X-Total-Count', totalCount);
 };
 
 const applySelect = function (query, options, req) {
-  //options select overrides request select
+  // options select overrides request select
   const select = options.select || req.query.select;
   if (select) {
     query = query.select(parseCommaParam(select));
@@ -283,14 +220,31 @@ Resource.prototype.query = function (options) {
     query.skip(pageSize * page);
     query.limit(pageSize + 1);
 
-    async.waterfall([
-      execQueryWithTotCount(query, countQuery),
-      applyPageLinks(req, res, page, pageSize, options.baseUrl),
-      applyTotalCount(res),
-      buildProjections(req, options.projection),
-      emitEvent(self, 'query'),
-      sendData(res, options.outputFormat, options.modelName, 200)
-    ], next);
+    Promise.all([
+      query.exec(),
+      countQuery.countDocuments()
+    ])
+      .then(function (results) {
+        const models = results[0];
+        const totalCount = results[1];
+
+        applyPageLinks(req, res, page, pageSize, options.baseUrl, totalCount, models);
+        applyTotalCount(res, totalCount);
+
+        return Promise.all(
+          models.map(function (model) {
+            return runProjection(options.projection, req, model);
+          })
+        );
+      })
+      .then(function (projectedModels) {
+        self.emit('query', projectedModels);
+        sendData(res, options.outputFormat, options.modelName, 200, projectedModels);
+        return next();
+      })
+      .catch(function (err) {
+        return next(restifyError(err));
+      });
   };
 };
 
@@ -317,12 +271,20 @@ Resource.prototype.detail = function (options) {
       query = query.where(self.options.filter(req, res));
     }
 
-    async.waterfall([
-      execQuery(query),
-      buildProjection(req, options.projection),
-      emitEvent(self, 'detail'),
-      sendData(res, options.outputFormat, options.modelName, 200)
-    ], next);
+    query.exec()
+      .then(function (model) {
+        if (!model) {
+          throw new restifyErrors.ResourceNotFoundError(req.params.id);
+        }
+
+        return runProjection(options.projection, req, model);
+      })
+      .then(function (projected) {
+        self.emit('detail', projected);
+        sendData(res, options.outputFormat, options.modelName, 200, projected);
+        return next();
+      })
+      .catch(next);
   };
 };
 
@@ -337,13 +299,21 @@ Resource.prototype.insert = function (options) {
 
   return function (req, res, next) {
     const model = new self.Model(req.body);
-    async.waterfall([
-      execBeforeSave(req, model, options.beforeSave),
-      execSave(model),
-      setLocationHeader(req, res, true, options.baseUrl),
-      emitEvent(self, 'insert'),
-      sendData(res, options.outputFormat, options.modelName, 201)
-    ], next);
+
+    runBeforeSave(options.beforeSave, req, model)
+      .then(function () {
+        return model.save();
+      })
+      .catch(function (err) {
+        throw restifyError(err);
+      })
+      .then(function (savedModel) {
+        setLocationHeader(req, res, true, options.baseUrl, savedModel);
+        self.emit('insert', savedModel);
+        sendData(res, options.outputFormat, options.modelName, 201, savedModel);
+        return next();
+      })
+      .catch(next);
   };
 };
 
@@ -366,35 +336,38 @@ Resource.prototype.update = function (options) {
       query = query.where(self.options.filter(req, res));
     }
 
-    query.exec(function (err, model) {
-      if (err) {
-        return next(err);
-      }
+    query.exec()
+      .then(function (model) {
+        if (!model) {
+          throw new restifyErrors.ResourceNotFoundError(req.params.id);
+        }
 
-      if (!model) {
-        return next(new restifyErrors.ResourceNotFoundError(req.params.id));
-      }
+        if (!req.body) {
+          throw new restifyErrors.InvalidContentError('No update data sent');
+        }
 
-      if (!req.body) {
-        return next(new restifyErrors.InvalidContentError('No update data sent'));
-      }
+        model.set(req.body);
 
-      model.set(req.body);
-
-      async.waterfall([
-        execBeforeSave(req, model, options.beforeSave),
-        execSave(model),
-        setLocationHeader(req, res, false, options.baseUrl),
-        emitEvent(self, 'update'),
-        sendData(res, options.outputFormat, options.modelName, 200)
-      ], next);
-    });
+        return runBeforeSave(options.beforeSave, req, model)
+          .then(function () {
+            return model.save();
+          })
+          .catch(function (err) {
+            throw restifyError(err);
+          })
+          .then(function (savedModel) {
+            setLocationHeader(req, res, false, options.baseUrl, savedModel);
+            self.emit('update', savedModel);
+            sendData(res, options.outputFormat, options.modelName, 200, savedModel);
+            return next();
+          });
+      })
+      .catch(next);
   };
 };
 
 Resource.prototype.remove = function () {
   const self = this;
-  const emitRemove = emitEvent(self, 'remove');
 
   return function (req, res, next) {
     const find = {};
@@ -406,29 +379,24 @@ Resource.prototype.remove = function () {
       query = query.where(self.options.filter(req, res));
     }
 
-    query.exec(function (err, model) {
-      if (err) {
-        return next(err);
-      }
-
-      if (!model) {
-        return next(new restifyErrors.ResourceNotFoundError(req.params.id));
-      }
-
-      model.remove(function (err) {
-        if (err) {
-          return next(err);
+    query.exec()
+      .then(function (model) {
+        if (!model) {
+          throw new restifyErrors.ResourceNotFoundError(req.params.id);
         }
 
-        res.send(200, model);
-        emitRemove(model, next);
-      });
-    });
+        const deletePromise = typeof model.deleteOne === 'function' ? model.deleteOne() : model.remove();
+        return Promise.resolve(deletePromise).then(function () {
+          res.send(200, model);
+          self.emit('remove', model);
+          return next();
+        });
+      })
+      .catch(next);
   };
 };
 
 Resource.prototype.serve = function (path, server, options) {
-
   options = options || {};
 
   const handlerChain = function handlerChain(handler, before, after) {
