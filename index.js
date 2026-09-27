@@ -94,6 +94,20 @@ const parseCommaParam = function (commaParam) {
   return commaParam.replace(/,/g, ' ');
 };
 
+// Recursively detects Mongo query operators (keys starting with '$') to
+// prevent NoSQL injection via user-supplied query objects (CWE-943).
+const containsMongoOperator = function (value) {
+  if (Array.isArray(value)) {
+    return value.some(containsMongoOperator);
+  }
+  if (value && typeof value === 'object') {
+    return Object.keys(value).some(function (key) {
+      return key.charAt(0) === '$' || containsMongoOperator(value[key]);
+    });
+  }
+  return false;
+};
+
 const applyPageLinks = function (req, res, page, pageSize, baseUrl, totalCount, models) {
   function makeLink(p, rel) {
     const parsed = new URL(req.url, 'http://localhost');
@@ -195,6 +209,9 @@ Resource.prototype.query = function (options) {
     if (req.query.q) {
       try {
         const q = JSON.parse(req.query.q);
+        if (containsMongoOperator(q)) {
+          return res.send(400, { message: 'Query must not contain Mongo operators' });
+        }
         query = query.where(q);
         countQuery = countQuery.where(q);
       } catch (err) {
