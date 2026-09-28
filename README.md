@@ -1,10 +1,10 @@
 # Restify-Mongoose
 [![NPM](https://nodei.co/npm/restify-mongoose.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/restify-mongoose/)
 
-[![Build Status](https://travis-ci.org/saintedlama/restify-mongoose.png?branch=master)](https://travis-ci.org/saintedlama/restify-mongoose)
-[![Coverage Status](https://coveralls.io/repos/saintedlama/restify-mongoose/badge.png?branch=master)](https://coveralls.io/r/saintedlama/restify-mongoose?branch=master)
-[![Dependencies Status](https://david-dm.org/saintedlama/restify-mongoose.svg)](https://david-dm.org/saintedlama/restify-mongoose)
-[![devDependency Status](https://david-dm.org/saintedlama/restify-mongoose/dev-status.svg)](https://david-dm.org/saintedlama/restify-mongoose#info=devDependencies)
+[![CI](https://github.com/saintedlama/restify-mongoose/actions/workflows/ci.yml/badge.svg)](https://github.com/saintedlama/restify-mongoose/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/restify-mongoose.svg)](https://www.npmjs.com/package/restify-mongoose)
+[![npm downloads](https://img.shields.io/npm/dm/restify-mongoose.svg)](https://www.npmjs.com/package/restify-mongoose)
+[![License](https://img.shields.io/npm/l/restify-mongoose.svg)](https://github.com/saintedlama/restify-mongoose/blob/master/LICENSE)
 
 Restify-Mongoose provides a resource abstraction for [restify](http://mcavage.me/node-restify/) to expose mongoose models as REST resources.
 
@@ -296,7 +296,7 @@ The output format can be changed to a more compatible one with the [json-api](ht
 ```javascript
 var users = restifyMongoose(User, {outputFormat: 'json-api'});
 users.serve('/users', restifyServer);
-``
+```
 Also you can specify a custom model name like this:
 
 ```javascript

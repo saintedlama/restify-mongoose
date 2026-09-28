@@ -20,6 +20,10 @@
     }
   ],
   "main": "index.js",
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ],
   "scripts": {
     "test": "vitest run",
     "coverage": "vitest run --coverage",
