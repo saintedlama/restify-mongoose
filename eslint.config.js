@@ -1,6 +1,8 @@
-module.exports = [
+const tseslint = require('typescript-eslint');
+
+module.exports = tseslint.config(
   {
-    ignores: ['coverage/**', 'examples/**']
+    ignores: ['coverage/**', 'dist/**']
   },
   {
     files: ['**/*.js'],
@@ -13,11 +15,29 @@ module.exports = [
       'prefer-const': 'error'
     }
   },
+  ...tseslint.configs.recommended.map((config) => ({
+    ...config,
+    files: ['**/*.ts']
+  })),
   {
-    files: ['test/**/*.js'],
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module'
+    files: ['**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_'
+        }
+      ]
+    }
+  },
+  {
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off'
     }
   }
-];
+);
