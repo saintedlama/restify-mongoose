@@ -41,8 +41,8 @@
   "devDependencies": {
     "@vitest/coverage-v8": "^5.0.2",
     "drop-mongodb-collections": "^2.0.0",
-    "eslint": "^6.5.1",
-    "supertest": "^7.0.0",
+    "eslint": "^10.11.0",
+    "supertest": "^7.3.0",
     "vitest": "^5.0.2"
   },
   "bugs": "https://github.com/saintedlama/restify-mongoose/issues",
