@@ -1408,6 +1408,101 @@ describe('restify-mongoose', function () {
       });
     });
 
+    describe('Modernized Projections & beforeSave', () => {
+      it('initializes default projections as modern direct functions returning the document', () => {
+        const resource = new restifyMongoose.Resource(Note);
+        expect(resource.options.listProjection).toBeDefined();
+        expect(resource.options.detailProjection).toBeDefined();
+        expect(resource.options.listProjection!.length).toBeLessThan(3);
+        expect(resource.options.detailProjection!.length).toBeLessThan(3);
+
+        const dummy = { title: 'defaultProjection' } as any;
+        expect((resource.options.listProjection as any)({} as any, dummy)).toBe(dummy);
+        expect((resource.options.detailProjection as any)({} as any, dummy)).toBe(dummy);
+      });
+
+      it('handles rejected Promise in async projection on query', async () => {
+        await Note.create({ title: 'rejectMe', date: new Date() });
+        const svr = server({
+          listProjection: async () => {
+            throw new Error('Async projection rejected');
+          }
+        });
+        await request(svr)
+          .get('/notes')
+          .expect(500);
+      });
+
+      it('handles thrown error in async beforeSave on insert', async () => {
+        const svr = server(false);
+        const opts = {
+          beforeSave: async () => {
+            throw new Error('Insert aborted by async beforeSave error');
+          }
+        };
+        svr.post('/notes', svr.notes!.insert(opts));
+        await request(svr)
+          .post('/notes')
+          .send({ title: 'Will Fail', date: new Date() })
+          .expect(500);
+      });
+
+      it('supports legacy 3-argument callback projection with backwards compatibility', async () => {
+        await Note.create({ title: 'callbackProjection', date: new Date() });
+        const svr = server({
+          listProjection: (_req: any, item: any, cb: any) => {
+            cb(null, { title: item.title, isLegacy: true });
+          }
+        });
+        const res = await request(svr)
+          .get('/notes')
+          .expect(200);
+        expect(res.body[0]).toHaveProperty('isLegacy', true);
+      });
+
+      it('handles error in legacy 3-argument callback projection', async () => {
+        await Note.create({ title: 'callbackError', date: new Date() });
+        const svr = server({
+          listProjection: (_req: any, _item: any, cb: any) => {
+            cb(new Error('Legacy projection failed'));
+          }
+        });
+        await request(svr)
+          .get('/notes')
+          .expect(500);
+      });
+
+      it('supports legacy 3-argument callback beforeSave with backwards compatibility', async () => {
+        const svr = server(false);
+        const opts = {
+          beforeSave: (_req: any, model: any, cb: any) => {
+            model.content = 'saved via legacy callback';
+            cb(null);
+          }
+        };
+        svr.post('/notes', svr.notes!.insert(opts));
+        const res = await request(svr)
+          .post('/notes')
+          .send({ title: 'Callback Note', date: new Date() })
+          .expect(201);
+        expect(res.body.content).toBe('saved via legacy callback');
+      });
+
+      it('handles error in legacy 3-argument callback beforeSave', async () => {
+        const svr = server(false);
+        const opts = {
+          beforeSave: (_req: any, _model: any, cb: any) => {
+            cb(new Error('Save aborted via callback error'));
+          }
+        };
+        svr.post('/notes', svr.notes!.insert(opts));
+        await request(svr)
+          .post('/notes')
+          .send({ title: 'Callback Fail', date: new Date() })
+          .expect(500);
+      });
+    });
+
     describe('Resource Class Export', () => {
       it('allows direct instantiation of Resource class', () => {
         const resource = new restifyMongoose.Resource(Note);
