@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import request from 'supertest';
 import mongoose from 'mongoose';
 import restifyMongoose from '../src/index';
+import { validateQuery, DEFAULT_ALLOWED_OPERATORS } from '../src/query-validator';
 import server from './fixtures/server';
 import Note from './fixtures/note';
 import Author from './fixtures/author';
@@ -1412,6 +1413,228 @@ describe('restify-mongoose', function () {
         const resource = new restifyMongoose.Resource(Note);
         expect(resource).toBeInstanceOf(restifyMongoose.Resource);
         expect(resource.Model).toBe(Note);
+      });
+    });
+  });
+
+  describe('Query Security & Sanitization', function () {
+    describe('validateQuery unit tests', function () {
+      it('should reject non-object values', function () {
+        expect(validateQuery(null).valid).toBe(false);
+        expect(validateQuery(undefined).valid).toBe(false);
+        expect(validateQuery('string').valid).toBe(false);
+        expect(validateQuery(123).valid).toBe(false);
+        expect(validateQuery(true).valid).toBe(false);
+        expect(validateQuery([]).valid).toBe(false);
+      });
+
+      it('should reject prototype pollution keys', function () {
+        expect(validateQuery(JSON.parse('{"__proto__":{"admin":true}}')).valid).toBe(false);
+        expect(validateQuery({ ['__proto__']: { admin: true } }).valid).toBe(false);
+        expect(validateQuery({ constructor: { admin: true } }).valid).toBe(false);
+        expect(validateQuery({ prototype: { admin: true } }).valid).toBe(false);
+        expect(
+          validateQuery({
+            title: { ['__proto__']: { admin: true } }
+          }).valid
+        ).toBe(false);
+      });
+
+      it('should allow valid queries under default whitelist policy', function () {
+        expect(validateQuery({ title: 'first' }).valid).toBe(true);
+        expect(validateQuery({ tags: { $in: ['a', 'b'] } }).valid).toBe(true);
+        expect(validateQuery({ date: { $gte: '2026-01-01', $lte: '2026-12-31' } }).valid).toBe(true);
+        expect(
+          validateQuery({
+            $or: [{ title: 'first' }, { title: 'second' }]
+          }).valid
+        ).toBe(true);
+      });
+
+      it('should reject unwhitelisted operators by default', function () {
+        for (const op of ['$where', '$function', '$accumulator', '$expr', '$unknown']) {
+          const topLevelRes = validateQuery({ [op]: 'something' });
+          expect(topLevelRes.valid).toBe(false);
+          expect(topLevelRes.message).toBe(`Query operator '${op}' is not allowed`);
+
+          const nestedRes = validateQuery({ field: { [op]: 'something' } });
+          expect(nestedRes.valid).toBe(false);
+          expect(nestedRes.message).toBe(`Query operator '${op}' is not allowed`);
+
+          const orRes = validateQuery({ $or: [{ [op]: 'something' }] });
+          expect(orRes.valid).toBe(false);
+          expect(orRes.message).toBe(`Query operator '${op}' is not allowed`);
+        }
+      });
+
+      it('should allow arbitrary operators when queryOperators is "all" or true', function () {
+        expect(validateQuery({ $expr: { $gt: ['$title', 'a'] } }, { queryOperators: 'all' }).valid).toBe(true);
+        expect(validateQuery({ $expr: { $gt: ['$title', 'a'] } }, { queryOperators: true }).valid).toBe(true);
+      });
+      it('should allow extending DEFAULT_ALLOWED_OPERATORS with custom operators', function () {
+        const extended = [...DEFAULT_ALLOWED_OPERATORS, '$custom'];
+        expect(validateQuery({ tags: { $custom: 'val' } }, { queryOperators: extended }).valid).toBe(true);
+      });
+
+      it('should reject any operator under none/false policy', function () {
+        const options = { queryOperators: 'none' as const };
+        expect(validateQuery({ title: 'first' }, options).valid).toBe(true);
+
+        const opRes = validateQuery({ tags: { $in: ['a'] } }, options);
+        expect(opRes.valid).toBe(false);
+        expect(opRes.message).toContain('Query operators are not allowed');
+
+        const boolRes = validateQuery({ tags: { $in: ['a'] } }, { queryOperators: false });
+        expect(boolRes.valid).toBe(false);
+        expect(boolRes.message).toContain('Query operators are not allowed');
+      });
+
+      it('should enforce operator whitelist when provided', function () {
+        const options = { queryOperators: ['$in', '$gte'] };
+        expect(validateQuery({ tags: { $in: ['a'] } }, options).valid).toBe(true);
+        expect(validateQuery({ date: { $gte: '2026-01-01' } }, options).valid).toBe(true);
+
+        const rejected = validateQuery({ date: { $lte: '2026-01-01' } }, options);
+        expect(rejected.valid).toBe(false);
+        expect(rejected.message).toContain("Query operator '$lte' is not allowed");
+      });
+
+      it('should enforce queryFields whitelist when provided', function () {
+        const options = { queryFields: ['title', 'date'] };
+        expect(validateQuery({ title: 'first' }, options).valid).toBe(true);
+        expect(validateQuery({ date: { $gte: '2026-01-01' } }, options).valid).toBe(true);
+
+        const rejected = validateQuery({ content: 'secret' }, options);
+        expect(rejected.valid).toBe(false);
+        expect(rejected.message).toContain("Query field 'content' is not allowed");
+
+        const nestedRejected = validateQuery(
+          { $or: [{ title: 'first' }, { content: 'secret' }] },
+          options
+        );
+        expect(nestedRejected.valid).toBe(false);
+        expect(nestedRejected.message).toContain("Query field 'content' is not allowed");
+      });
+    });
+
+    describe('HTTP endpoint integration', function () {
+      beforeEach(() => dropMongodbCollections(MONGO_URI));
+      beforeEach(() => mongoose.connect(MONGO_URI));
+
+      beforeEach(async function () {
+        await Note.create([
+          { title: 'first', date: new Date('2026-01-01'), tags: ['alpha', 'beta'], content: 'hello' },
+          { title: 'second', date: new Date('2026-06-01'), tags: ['beta'], content: 'world' },
+          { title: 'third', date: new Date('2026-12-01'), tags: ['gamma'], content: 'foo' }
+        ]);
+      });
+
+      afterEach(() => mongoose.disconnect());
+
+      it('should permit safe operators ($in, $gte) by default', async function () {
+        const res = await request(server())
+          .get('/notes?q={"tags":{"$in":["alpha"]}}')
+          .expect('Content-Type', /json/)
+          .expect(200);
+
+        expect(res.body).toHaveLength(1);
+        expect(res.body[0].title).toBe('first');
+      });
+
+      it('should reject unwhitelisted operator $where with 400', async function () {
+        const res = await request(server())
+          .get('/notes?q={"$where":"sleep(100)"}')
+          .expect('Content-Type', /json/)
+          .expect(400);
+
+        expect(res.body.message).toBe("Query operator '$where' is not allowed");
+      });
+
+      it('should reject unwhitelisted operator $expr with 400', async function () {
+        const res = await request(server())
+          .get('/notes?q={"$expr":{"$gt":["$title","a"]}}')
+          .expect('Content-Type', /json/)
+          .expect(400);
+
+        expect(res.body.message).toBe("Query operator '$expr' is not allowed");
+      });
+
+      it('should reject non-object JSON values like 123 or arrays', async function () {
+        const resNum = await request(server())
+          .get('/notes?q=123')
+          .expect('Content-Type', /json/)
+          .expect(400);
+
+        expect(resNum.body.message).toBe('Query must be a valid JSON object');
+
+        const resArr = await request(server())
+          .get('/notes?q=["test"]')
+          .expect('Content-Type', /json/)
+          .expect(400);
+
+        expect(resArr.body.message).toBe('Query must be a valid JSON object');
+      });
+
+      it('should reject prototype pollution keys with 400', async function () {
+        const res = await request(server())
+          .get('/notes?q={"__proto__":{"polluted":true}}')
+          .expect('Content-Type', /json/)
+          .expect(400);
+
+        expect(res.body.message).toContain('Query must not contain prototype pollution key: __proto__');
+      });
+
+      it('should support strict mode queryOperators: "none" on Resource', async function () {
+        const strictServer = server({ queryOperators: 'none' });
+
+        const resMatch = await request(strictServer)
+          .get('/notes?q={"title":"first"}')
+          .expect(200);
+        expect(resMatch.body).toHaveLength(1);
+
+        const resOp = await request(strictServer)
+          .get('/notes?q={"tags":{"$in":["alpha"]}}')
+          .expect(400);
+        expect(resOp.body.message).toContain('Query operators are not allowed: $in');
+      });
+
+      it('should support strict mode queryOperators: false on route query()', async function () {
+        const svr = server({}, false);
+        const notes = restifyMongoose(Note);
+        svr.get('/notes', notes.query({ queryOperators: false }));
+
+        const res = await request(svr)
+          .get('/notes?q={"tags":{"$in":["alpha"]}}')
+          .expect(400);
+        expect(res.body.message).toContain('Query operators are not allowed: $in');
+      });
+
+      it('should support custom whitelist queryOperators: ["$in"]', async function () {
+        const svr = server({ queryOperators: ['$in'] });
+
+        const resIn = await request(svr)
+          .get('/notes?q={"tags":{"$in":["alpha"]}}')
+          .expect(200);
+        expect(resIn.body).toHaveLength(1);
+
+        const resNe = await request(svr)
+          .get('/notes?q={"title":{"$ne":"first"}}')
+          .expect(400);
+        expect(resNe.body.message).toContain("Query operator '$ne' is not allowed");
+      });
+
+      it('should support queryFields whitelist', async function () {
+        const svr = server({ queryFields: ['title', 'date'] });
+
+        const resTitle = await request(svr)
+          .get('/notes?q={"title":"first"}')
+          .expect(200);
+        expect(resTitle.body).toHaveLength(1);
+
+        const resSecret = await request(svr)
+          .get('/notes?q={"content":"hello"}')
+          .expect(400);
+        expect(resSecret.body.message).toContain("Query field 'content' is not allowed");
       });
     });
   });

@@ -124,6 +124,61 @@ To filter a notes resource by title to match term "first" append the __q__ query
 
     http://localhost:3000/notes?q={"title":"first"}
 
+### Query Security & Sanitization
+
+By default, `restify-mongoose` operates on a **whitelist-first** security model to protect against NoSQL injection:
+* **Object & Prototype Safety**: Queries must parse into a valid JSON object. Prototype pollution keys (`__proto__`, `constructor`, `prototype`) and non-object payloads are rejected with HTTP 400.
+* **Default Operator Whitelist**: Only safe, standard query operators are permitted by default:
+  - Comparison: `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`, `$in`, `$nin`
+  - Logical: `$and`, `$or`, `$not`, `$nor`
+  - Element: `$exists`, `$type`
+  - Array: `$all`, `$elemMatch`, `$size`
+  - Evaluation: `$regex`, `$options`
+* **Default Deny**: Any operator not in the whitelist (e.g. `$where`, `$expr`, `$function`, `$accumulator`, or unknown operators) is rejected with HTTP 400.
+
+#### Customizing Allowed Operators (`queryOperators`)
+
+You can customize which query operators are permitted at the resource or query route level:
+
+* **Default**: Standard whitelist of safe comparison, logical, and array operators.
+* `string[]`: Custom whitelist specifying exactly which operators are allowed.
+* `'none'` or `false`: Strict mode — disallows **all** `$` operators (allowing only direct key-value matching).
+* `'all'` or `true`: Unrestricted mode — permits any MongoDB query operator.
+
+```typescript
+import restifyMongoose, { DEFAULT_ALLOWED_OPERATORS } from 'restify-mongoose';
+
+// Strict mode: disallow all MongoDB operators
+const notes = restifyMongoose(Note, { queryOperators: 'none' });
+
+// Custom whitelist: only allow specific operators
+const notes = restifyMongoose(Note, {
+  queryOperators: ['$gt', '$gte', '$lt', '$lte', '$in']
+});
+
+// Extend default whitelist with additional operators
+const notes = restifyMongoose(Note, {
+  queryOperators: [...DEFAULT_ALLOWED_OPERATORS, '$text']
+});
+
+// Or configure per-route
+server.get('/notes', notes.query({ queryOperators: false }));
+```
+
+#### Restricting Queryable Fields (`queryFields`)
+
+To prevent clients from querying internal or sensitive fields, specify an allowed fields list as an array or comma-separated string:
+
+```typescript
+// Only allow queries on title and date
+const notes = restifyMongoose(Note, {
+  queryFields: ['title', 'date']
+});
+
+// Or as a comma-separated string
+server.get('/notes', notes.query({ queryFields: 'title,date' }));
+```
+
 ## Paginate
 Requests that return multiple items in `query` will be paginated to 100 items by default. You can set the `pageSize`
 (number min=1) by adding it to the options.
