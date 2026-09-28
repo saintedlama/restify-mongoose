@@ -85,6 +85,19 @@ async function runProjection<T, R = unknown>(
     return model;
   }
 
+  if (projection.length < 3) {
+    const directFn = projection as (
+      req: restify.Request,
+      item: mongoose.HydratedDocument<T>
+    ) => Promise<R> | R;
+    const res = directFn(req, model);
+    if (res && typeof (res as Promise<R>).then === 'function') {
+      const resolved = await res;
+      return resolved !== undefined ? resolved : model;
+    }
+    return res !== undefined ? res : model;
+  }
+
   return new Promise<R | mongoose.HydratedDocument<T>>((resolve, reject) => {
     let called = false;
     const cb: restifyMongoose.ProjectionCallback<R> = (err, result) => {
@@ -99,25 +112,12 @@ async function runProjection<T, R = unknown>(
     };
 
     try {
-      if (projection.length >= 3) {
-        const callbackFn = projection as (
-          req: restify.Request,
-          item: mongoose.HydratedDocument<T>,
-          cb: restifyMongoose.ProjectionCallback<R>
-        ) => void;
-        callbackFn(req, model, cb);
-      } else {
-        const directFn = projection as (
-          req: restify.Request,
-          item: mongoose.HydratedDocument<T>
-        ) => Promise<R> | R;
-        const res = directFn(req, model);
-        if (res && typeof (res as Promise<R>).then === 'function') {
-          (res as Promise<R>).then(resolve, reject);
-        } else {
-          resolve(res);
-        }
-      }
+      const callbackFn = projection as (
+        req: restify.Request,
+        item: mongoose.HydratedDocument<T>,
+        cb: restifyMongoose.ProjectionCallback<R>
+      ) => void;
+      callbackFn(req, model, cb);
     } catch (err) {
       reject(err);
     }
@@ -130,6 +130,18 @@ async function runBeforeSave<T>(
   model: mongoose.HydratedDocument<T>
 ): Promise<void> {
   if (!beforeSave) {
+    return;
+  }
+
+  if (beforeSave.length < 3) {
+    const directFn = beforeSave as (
+      req: restify.Request,
+      item: mongoose.HydratedDocument<T>
+    ) => Promise<void> | void;
+    const res = directFn(req, model);
+    if (res && typeof (res as Promise<void>).then === 'function') {
+      await res;
+    }
     return;
   }
 
@@ -147,25 +159,12 @@ async function runBeforeSave<T>(
     };
 
     try {
-      if (beforeSave.length >= 3) {
-        const callbackFn = beforeSave as (
-          req: restify.Request,
-          item: mongoose.HydratedDocument<T>,
-          cb: restifyMongoose.BeforeSaveCallback
-        ) => void;
-        callbackFn(req, model, cb);
-      } else {
-        const directFn = beforeSave as (
-          req: restify.Request,
-          item: mongoose.HydratedDocument<T>
-        ) => Promise<void> | void;
-        const res = directFn(req, model);
-        if (res && typeof (res as Promise<void>).then === 'function') {
-          (res as Promise<void>).then(() => resolve(), reject);
-        } else {
-          resolve();
-        }
-      }
+      const callbackFn = beforeSave as (
+        req: restify.Request,
+        item: mongoose.HydratedDocument<T>,
+        cb: restifyMongoose.BeforeSaveCallback
+      ) => void;
+      callbackFn(req, model, cb);
     } catch (err) {
       reject(err);
     }
@@ -297,16 +296,24 @@ namespace restifyMongoose {
   export type FilterFunction = (req: restify.Request, res: restify.Response) => Promise<FilterResult> | FilterResult;
   export type filterFunction = FilterFunction;
 
+  /**
+   * @deprecated Callback-style projections are deprecated and will be removed in a future release.
+   * Return the transformed document or a Promise directly from the projection function instead.
+   */
   export type ProjectionCallback<R = unknown> = (err?: unknown, doc?: R) => void;
   export type ProjectionFunction<T, R = unknown> =
-    | ((req: restify.Request, item: mongoose.HydratedDocument<T>, cb: ProjectionCallback<R>) => void)
-    | ((req: restify.Request, item: mongoose.HydratedDocument<T>) => Promise<R> | R);
+    | ((req: restify.Request, item: mongoose.HydratedDocument<T>) => Promise<R> | R)
+    | ((req: restify.Request, item: mongoose.HydratedDocument<T>, cb: ProjectionCallback<R>) => void);
   export type projectionFunction<T, R = unknown> = ProjectionFunction<T, R>;
 
+  /**
+   * @deprecated Callback-style beforeSave hooks are deprecated and will be removed in a future release.
+   * Return void, a Promise<void>, or throw an error instead.
+   */
   export type BeforeSaveCallback = (err?: unknown) => void;
   export type BeforeSaveFunction<T> =
-    | ((req: restify.Request, item: mongoose.HydratedDocument<T>, cb: BeforeSaveCallback) => void)
-    | ((req: restify.Request, item: mongoose.HydratedDocument<T>) => Promise<void> | void);
+    | ((req: restify.Request, item: mongoose.HydratedDocument<T>) => Promise<void> | void)
+    | ((req: restify.Request, item: mongoose.HydratedDocument<T>, cb: BeforeSaveCallback) => void);
   export type beforeSaveFunction<T> = BeforeSaveFunction<T>;
 
   export type QueryOperatorPolicy =
@@ -400,12 +407,8 @@ namespace restifyMongoose {
       this.options.modelName = this.options.modelName || Model.modelName;
       this.options.queryOperators = this.options.queryOperators;
       this.options.queryFields = this.options.queryFields;
-      this.options.listProjection = this.options.listProjection || ((_req: restify.Request, item: mongoose.HydratedDocument<T>, cb: ProjectionCallback<mongoose.HydratedDocument<T>>) => {
-        cb(null, item);
-      });
-      this.options.detailProjection = this.options.detailProjection || ((_req: restify.Request, item: mongoose.HydratedDocument<T>, cb: ProjectionCallback<mongoose.HydratedDocument<T>>) => {
-        cb(null, item);
-      });
+      this.options.listProjection = this.options.listProjection || ((_req: restify.Request, item: mongoose.HydratedDocument<T>) => item);
+      this.options.detailProjection = this.options.detailProjection || ((_req: restify.Request, item: mongoose.HydratedDocument<T>) => item);
     }
 
     query(options?: QueryOptions<T>): restify.RequestHandler {
