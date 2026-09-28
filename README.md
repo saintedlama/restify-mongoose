@@ -15,42 +15,49 @@ First you'll need to install restify-mongoose via npm
 
 Second step is to wire up mongoose and restify using restify-mongoose
 
-```javascript
-var restify = require('restify');
-var restifyMongoose = require('restify-mongoose');
-var mongoose = require('mongoose');
+```typescript
+import restify from 'restify';
+import restifyMongoose from 'restify-mongoose';
+import mongoose from 'mongoose';
 
-var server = restify.createServer({
-    name: 'restify.mongoose.examples.notes',
-    version: '1.0.0'
+const server = restify.createServer({
+  name: 'restify.mongoose.examples.notes',
+  version: '1.0.0'
 });
 
 server.use(restify.plugins.acceptParser(server.acceptable));
 server.use(restify.plugins.queryParser());
 server.use(restify.plugins.bodyParser());
 
-// Create a simple mongoose model 'Note'
-var NoteSchema = new mongoose.Schema({
-    title : { type : String, required : true },
-    date : { type : Date, required : true },
-    tags : [String],
-    content : { type: String }
+// Define Mongoose schema & model for 'Note'
+interface INote {
+  title: string;
+  date: Date;
+  tags?: string[];
+  content?: string;
+}
+
+const NoteSchema = new mongoose.Schema<INote>({
+  title: { type: String, required: true },
+  date: { type: Date, required: true },
+  tags: [String],
+  content: { type: String }
 });
 
-var Note = mongoose.model('notes', NoteSchema);
+const Note = mongoose.model<INote>('notes', NoteSchema);
 
-// Now create a restify-mongoose resource from 'Note' mongoose model
-var notes = restifyMongoose(Note);
+// Create a restify-mongoose resource from the 'Note' model
+const notes = restifyMongoose(Note);
 
-// Serve resource notes with fine grained mapping control
+// Serve resource notes with fine-grained route mapping
 server.get('/notes', notes.query());
 server.get('/notes/:id', notes.detail());
 server.post('/notes', notes.insert());
 server.patch('/notes/:id', notes.update());
 server.del('/notes/:id', notes.remove());
 
-server.listen(3000, function () {
-    console.log('%s listening at %s', server.name, server.url);
+server.listen(3000, () => {
+  console.log(`${server.name} listening at ${server.url}`);
 });
 ```
 
@@ -82,11 +89,11 @@ __Query String__
 Setting a `queryString` will make restify-mongoose use the string as the field name to conduct its searches in the `detail` `update` & `remove` functions.
 If not set it will use the default behavior of using mongos `_id` field.
 
-```javascript
-// Now create a restify-mongoose resource from 'Note' mongoose model and set queryString to 'myField'
-var notes = restifyMongoose(Note, {queryString: 'myField'});
+```typescript
+// Create a restify-mongoose resource with a custom lookup field
+const notes = restifyMongoose(Note, { queryString: 'slug' });
 
-// these functions will now conduct searches with the field 'myField'. (defaults to '_id')
+// Routes will now look up documents by 'slug' instead of '_id'
 server.get('/notes/:id', notes.detail());
 server.patch('/notes/:id', notes.update());
 server.del('/notes/:id', notes.remove());
@@ -94,25 +101,26 @@ server.del('/notes/:id', notes.remove());
 
 __Quick mapping__
 
-```javascript
+```typescript
 // Serve resource notes with quick mapping
-restifyMongoose(models.Note).serve('/api/notes', server);
+const notes = restifyMongoose(Note);
+notes.serve('/api/notes', server);
 ```
 
-Maps urls
+Automatically mounts:
+* `GET '/api/notes'` -> `query()`
+* `GET '/api/notes/:id'` -> `detail()`
+* `POST '/api/notes'` -> `insert()`
+* `DELETE '/api/notes/:id'` -> `remove()`
+* `PATCH '/api/notes/:id'` -> `update()`
 
-* GET '/api/notes' to `query` function
-* GET '/api/notes/:id' to `detail` function
-* POST '/api/notes' to `insert` function
-* DELETE '/api/notes/:id' to `remove` function
-* PATCH '/api/notes/:id' to `update` function
+You can also pass an options object to the `serve` method to attach handlers before and after the request (e.g. authentication middleware):
 
-You can also pass an options object to the `serve` method to attach handlers before and after the request.
-For example, to use [restify-jwt](https://github.com/auth0/express-jwt):
-
-```javascript
-// Serve resource notes with quick mapping with JWT auth
-restifyMongoose(models.Note).serve('/api/notes', server, { before: jwt({secret: 'some-secret'}) } );
+```typescript
+// Serve resource notes with quick mapping and auth middleware
+notes.serve('/api/notes', server, {
+  before: [jwt({ secret: 'some-secret' })]
+});
 ```
 
 ## Queries
@@ -183,12 +191,10 @@ server.get('/notes', notes.query({ queryFields: 'title,date' }));
 Requests that return multiple items in `query` will be paginated to 100 items by default. You can set the `pageSize`
 (number min=1) by adding it to the options.
 
-```javascript
-var options = {
-	pageSize: 2
-};
-
-var notes = restifyMongoose(Note, options);
+```typescript
+const notes = restifyMongoose(Note, {
+  pageSize: 2
+});
 ```
 
 or as query string parameter `pageSize` (which will have the presedence)
@@ -217,10 +223,10 @@ _Linebreak is included for readability._
 
 You can set the `baseUrl` by adding it to the options.
 
-```javascript
-var options = {
-	baseUrl: 'http://example.com'
-};
+```typescript
+const notes = restifyMongoose(Note, {
+  baseUrl: 'http://example.com'
+});
 ```
 
 The possible `rel` values are:
@@ -246,15 +252,15 @@ To sort a notes resource by title descending append the __sort__ query parameter
 You can also define a default sort in the options object. This option will by ignored if a __sort__ query parameter exists.
 
 Using in the constructor:
-```javascript
-var notes = restifyMongoose(Note, {sort: '-title'});
-notes.serve('/notes', restifyServer);
+```typescript
+const notes = restifyMongoose(Note, { sort: '-title' });
+notes.serve('/notes', server);
 ```
 
-Using for query or detail methods:
-```javascript
-var notes = restifyMongoose(Note);
-note.query({sort: '-title'});
+Using per-route:
+```typescript
+const notes = restifyMongoose(Note);
+server.get('/notes', notes.query({ sort: '-title' }));
 
 ## Select Fields
 To restrict selected columns you can pass a query string parameter __select__.
@@ -268,16 +274,16 @@ To select only title and date the fields of a notes resource append the __select
 You can also define select fields in the options object. This will make the the __select__ query parameter be ignored.
 
 Using in the constructor:
-```javascript
-var notes = restifyMongoose(Note, {select: 'title'});
-notes.serve('/notes', restifyServer);
+```typescript
+const notes = restifyMongoose(Note, { select: 'title' });
+notes.serve('/notes', server);
 ```
 
-Using for query or detail methods:
-```javascript
-var notes = restifyMongoose(Note);
-note.detail({select: 'title,date,tags'});
-note.query({select: 'title date'});
+Using per-route:
+```typescript
+const notes = restifyMongoose(Note);
+server.get('/notes/:id', notes.detail({ select: 'title,date,tags' }));
+server.get('/notes', notes.query({ select: 'title date' }));
 ```
 
 ## Filter
@@ -314,52 +320,44 @@ server.del('/notes/:id', notes.remove({
 
 ## Projection
 
-A projection is a function, used by the `query` and `detail` operations, which takes the request object, the result model, and a callback. This function should invoke the callback exactly once. This callback takes an error and a model item as it's two parameters. Use `null` for the error is there is no error.
+A projection transforms a document before sending it in the response for `query` and `detail` operations. This is useful for omitting sensitive fields (e.g. `passwordHash`) or transforming document structure.
 
-For instance, the default detail and list projections are as follows:
+Projections support both modern `async` functions and classic callbacks:
 
-```javascript
-function (req, item, cb) {
-  cb(null, item);
-};
-```
-
-A projection is useful if you need to manipulate the result item before returning it in the response. For instance, you may not want to return the passwordHash for a User data model.
-
-```javascript
-// If this is the schema
-var UserSchema = new Schema({
-  username: String,
-  email: String,
-  passwordHash: String
-});
-
-// This is a projection translating _id to id and not including passwordHash
-var userProjection = function(req, item, cb) {
-  var user = {
+```typescript
+// Async projection (Recommended)
+const userProjection = async (req, item) => {
+  return {
     id: item._id,
     username: item.username,
     email: item.email
   };
-  cb(null, user);
+};
+
+// Callback projection
+const userProjectionCallback = (req, item, cb) => {
+  cb(null, {
+    id: item._id,
+    username: item.username,
+    email: item.email
+  });
 };
 ```
 
-Projection functions are specified in the options for the resitfy-mongoose contructor, the query function, or the detail function.
+Projections can be configured on the Resource constructor (`listProjection` and `detailProjection`) or per-route on `query` and `detail`:
 
-For the construtor, the options are `listProjection` and `detailProjection`
+```typescript
+// On the constructor
+const users = restifyMongoose(User, {
+  listProjection: userProjection,
+  detailProjection: userProjection
+});
+users.serve('/users', server);
 
-```javascript
-var users = restifyMongoose(User, {listProjection: userProjection, detailProjection: userProjection});
-users.serve('/users', restifyServer);
-```
-
-For both query and detail, the option is `projection`
-var users = restifyMongoose(User);
-
-```javascript
-users.detail({projection: userProjection});
-users.query({projection: userProjection});
+// Per-route
+const users = restifyMongoose(User);
+server.get('/users/:id', users.detail({ projection: userProjection }));
+server.get('/users', users.query({ projection: userProjection }));
 ```
 
 ## beforeSave
@@ -490,22 +488,20 @@ Referenced documents can be populated in three ways:
 Adding `populate=[referenced_field]` to the query string will populate the `referenced_field`, if it exists.
 
 #### Resource option
-```javascript
-// e.g.
-var notes = restifyMongoose(Note, {populate: 'author'});
+```typescript
+const notes = restifyMongoose(Note, { populate: 'author' });
 ```
 
 #### query / detail method options
-```javascript
-// e.g.
-server.get('/notes', notes.query({populate: 'author'}))
-server.get('/notes/:id', notes.detail({populate: 'author'}))
+```typescript
+server.get('/notes', notes.query({ populate: 'author' }));
+server.get('/notes/:id', notes.detail({ populate: 'author' }));
 ```
 
 ### Populating multiple fields
 Multiple referenced documents can be populated by using a comma-delimited list of the desired fields:
-```javascript
-var notes = restifyMongoose(Note, {populate: 'author,contributors'});
+```typescript
+const notes = restifyMongoose(Note, { populate: 'author,contributors' });
 ```
 
 ### Advanced Populate Options (Objects & Arrays)
