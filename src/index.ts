@@ -3,6 +3,7 @@ import * as util from 'util';
 import * as restify from 'restify';
 import restifyErrors from 'restify-errors';
 import mongoose from 'mongoose';
+import { validateQuery, DEFAULT_ALLOWED_OPERATORS } from './query-validator';
 
 type ModelFilter<T> = Parameters<mongoose.Model<T>['findOne']>[0];
 
@@ -283,6 +284,23 @@ namespace restifyMongoose {
     | ((req: restify.Request, item: mongoose.HydratedDocument<T>) => Promise<void> | void);
   export type beforeSaveFunction<T> = BeforeSaveFunction<T>;
 
+  export type QueryOperatorPolicy =
+    | 'default'
+    | 'none'
+    | 'all'
+    | boolean
+    | string[];
+
+  export type QueryValidationOptions = {
+    queryOperators?: QueryOperatorPolicy;
+    queryFields?: string[] | string;
+  };
+
+  export type ValidationResult = {
+    valid: boolean;
+    message?: string;
+  };
+
   export type BaseOptions = {
     baseUrl?: string;
     outputFormat?: string; // default 'regular'
@@ -300,6 +318,8 @@ namespace restifyMongoose {
     select?: string;
     sort?: string;
     beforeSave?: BeforeSaveFunction<T>;
+    queryOperators?: QueryOperatorPolicy;
+    queryFields?: string[] | string;
   };
 
   export type QueryOptions<T, R = unknown> = BaseOptions & {
@@ -309,6 +329,8 @@ namespace restifyMongoose {
     populate?: string;
     select?: string;
     sort?: string;
+    queryOperators?: QueryOperatorPolicy;
+    queryFields?: string[] | string;
   };
 
   export type DetailOptions<T, R = unknown> = BaseOptions & {
@@ -344,6 +366,8 @@ namespace restifyMongoose {
       this.options.baseUrl = this.options.baseUrl || '';
       this.options.outputFormat = this.options.outputFormat || 'regular';
       this.options.modelName = this.options.modelName || Model.modelName;
+      this.options.queryOperators = this.options.queryOperators;
+      this.options.queryFields = this.options.queryFields;
       this.options.listProjection = this.options.listProjection || ((_req: restify.Request, item: mongoose.HydratedDocument<T>, cb: ProjectionCallback<mongoose.HydratedDocument<T>>) => {
         cb(null, item);
       });
@@ -363,6 +387,8 @@ namespace restifyMongoose {
         populate: this.options.populate,
         select: this.options.select,
         sort: this.options.sort,
+        queryOperators: this.options.queryOperators,
+        queryFields: this.options.queryFields,
         ...options
       };
 
@@ -374,16 +400,26 @@ namespace restifyMongoose {
 
             const reqQuery = req.query as Record<string, string | undefined> | undefined;
             if (reqQuery && reqQuery.q) {
+              let q: unknown;
               try {
-                const q = JSON.parse(reqQuery.q) as ModelFilter<T>;
-                if (q) {
-                  query = query.where(q);
-                  countQuery = countQuery.where(q);
-                }
+                q = JSON.parse(reqQuery.q);
               } catch (err) {
                 res.send(400, { message: 'Query is not a valid JSON object', errors: err });
                 return;
               }
+
+              const validation = validateQuery(q, {
+                queryOperators: queryOptions.queryOperators,
+                queryFields: queryOptions.queryFields
+              });
+
+              if (!validation.valid) {
+                res.send(400, { message: validation.message });
+                return;
+              }
+
+              query = query.where(q as Record<string, unknown>);
+              countQuery = countQuery.where(q as Record<string, unknown>);
             }
 
             applySelect(query, queryOptions, req);
@@ -630,6 +666,8 @@ namespace restifyMongoose {
 // Attach Resource class and default property for compatibility
 Object.assign(restifyMongoose, {
   Resource: restifyMongoose.Resource,
+  validateQuery,
+  DEFAULT_ALLOWED_OPERATORS,
   default: restifyMongoose
 });
 
