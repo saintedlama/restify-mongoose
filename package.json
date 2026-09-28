@@ -19,12 +19,13 @@
       "email": "ismar@slomic.no"
     }
   ],
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "index.js",
-    "index.d.ts"
+    "dist"
   ],
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "lint": "eslint .",
@@ -43,10 +44,16 @@
     "restify-errors": "^9.0.1"
   },
   "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@types/restify": "^8.5.12",
+    "@types/restify-errors": "^4.3.9",
+    "@types/supertest": "^7.2.1",
     "@vitest/coverage-v8": "^5.0.2",
     "drop-mongodb-collections": "^2.0.0",
     "eslint": "^10.11.0",
     "supertest": "^7.3.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.70.1",
     "vitest": "^5.0.2"
   },
   "bugs": "https://github.com/saintedlama/restify-mongoose/issues",

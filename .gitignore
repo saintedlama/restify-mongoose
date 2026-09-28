@@ -10,6 +10,7 @@ testapp
 # npm
 node_modules
 npm-debug.log
+dist/
 
 # IDE
 .idea/

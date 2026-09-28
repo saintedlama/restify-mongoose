@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import request from 'supertest';
 import mongoose from 'mongoose';
-import restifyMongoose from '../index.js';
-import server from './fixtures/server.js';
-import Note from './fixtures/note.js';
-import Author from './fixtures/author.js';
+import restifyMongoose from '../src/index';
+import server from './fixtures/server';
+import Note from './fixtures/note';
+import Author from './fixtures/author';
 import dropMongodbCollections from 'drop-mongodb-collections';
 
 const MONGO_URI = 'mongodb://localhost:27017/restify-mongoose-tests';
@@ -13,6 +13,7 @@ describe('restify-mongoose', function () {
   describe('constructor', function () {
     it('should throw if no model is given', function () {
       expect(function () {
+        // @ts-expect-error testing runtime throw when called without required Model argument
         restifyMongoose();
       }).toThrow(/Model argument/);
     });
@@ -69,7 +70,7 @@ describe('restify-mongoose', function () {
         .expect(200);
 
       expect(res.body).toHaveLength(3);
-      const containsPopulatedAuthors = res.body.some(post => typeof post.author === 'object' && post.author !== null && post.author.name);
+      const containsPopulatedAuthors = res.body.some((post: any) => typeof post.author === 'object' && post.author !== null && post.author.name);
       expect(containsPopulatedAuthors).toBe(false);
     });
 
@@ -313,7 +314,7 @@ describe('restify-mongoose', function () {
       expect(res.body).toHaveLength(2);
     });
 
-    function assertFirstPage(suffix) {
+    function assertFirstPage(suffix: string) {
       return async function () {
         const res = await request(server({ pageSize: 2, baseUrl: 'http://example.com' }))
           .get('/notes' + suffix)
@@ -330,7 +331,7 @@ describe('restify-mongoose', function () {
     it('should respond with first page given negative page number', assertFirstPage('?sort=_id&p=-123'));
 
     describe('total count header', function () {
-      function assertTotalCount(expectedResult, options, queryString) {
+      function assertTotalCount(expectedResult: string, options: any, queryString: string) {
         return async function () {
           const res = await request(server(options))
             .get('/notes' + queryString)
@@ -642,7 +643,7 @@ describe('restify-mongoose', function () {
       const svr = server(false);
       const content = 'Specifically buy a soprano ukulele, the most common kind.';
       const opts = {
-        beforeSave: function (req, model, cb) {
+        beforeSave: function (req: any, model: any, cb: any) {
           model.content = content;
           cb();
         }
@@ -745,7 +746,7 @@ describe('restify-mongoose', function () {
       const svr = server(false);
       const content = 'Specifically buy a soprano ukulele, the most common kind.';
       const opts = {
-        beforeSave: function (req, model, cb) {
+        beforeSave: function (req: any, model: any, cb: any) {
           model.content = content;
           cb();
         }
@@ -954,19 +955,19 @@ describe('restify-mongoose', function () {
   });
 
   describe('serve', function () {
-    const generateOptions = function (beforeCalled, afterCalled) {
+    const generateOptions = function (beforeCalled: boolean[], afterCalled: boolean[]) {
       return {
-        before: [function (req, res, next) {
+        before: [function (req: any, res: any, next: any) {
           beforeCalled[0] = true;
           next();
-        }, function (req, res, next) {
+        }, function (req: any, res: any, next: any) {
           beforeCalled[1] = true;
           next();
         }],
-        after: [function (req, res, next) {
+        after: [function (req: any, res: any, next: any) {
           afterCalled[0] = true;
           next();
-        }, function (req, res, next) {
+        }, function (req: any, res: any, next: any) {
           afterCalled[1] = true;
           next();
         }]
@@ -1051,9 +1052,9 @@ describe('restify-mongoose', function () {
       const afterCalled = [false, false];
       const options = generateOptions(beforeCalled, afterCalled);
 
-      const svrOptions = {};
+      const svrOptions: any = {};
       const content = 'Specifically buy a soprano ukulele, the most common kind.';
-      svrOptions.beforeSave = function (req, model, cb) {
+      svrOptions.beforeSave = function (req: any, model: any, cb: any) {
         model.content = content;
         cb();
       };
@@ -1110,9 +1111,9 @@ describe('restify-mongoose', function () {
       const afterCalled = [false, false];
       const options = generateOptions(beforeCalled, afterCalled);
 
-      const svrOptions = {};
+      const svrOptions: any = {};
       const content = 'Specifically buy a soprano ukulele, the most common kind.';
-      svrOptions.beforeSave = function (req, model, cb) {
+      svrOptions.beforeSave = function (req: any, model: any, cb: any) {
         model.content = content;
         cb();
       };
@@ -1172,7 +1173,7 @@ describe('restify-mongoose', function () {
       let beforeCalled = false;
 
       const options = {
-        before: function (req, res, next) {
+        before: function (req: any, res: any, next: any) {
           beforeCalled = true;
           next();
         }
@@ -1194,7 +1195,7 @@ describe('restify-mongoose', function () {
       let afterCalled = false;
 
       const options = {
-        after: function (req, res, next) {
+        after: function (req: any, res: any, next: any) {
           afterCalled = true;
           next();
         }
@@ -1249,6 +1250,9 @@ describe('restify-mongoose', function () {
       expect(res.body.errors.title).toBeTruthy();
     });
 
+
+
+
     it('should serve mongoose validation errors as errors property in body for update', async function () {
       const note = await Note.create({
         title: 'updateThisTitle',
@@ -1271,12 +1275,153 @@ describe('restify-mongoose', function () {
       expect(res.body.errors.title).toBeTruthy();
     });
   });
+
+  describe('TypeScript & Async/Await Integration', () => {
+    beforeEach(() => dropMongodbCollections(MONGO_URI));
+    beforeEach(() => mongoose.connect(MONGO_URI));
+    afterEach(() => mongoose.disconnect());
+
+    describe('Async & Sync Projections', () => {
+      it('supports async projection on query', async () => {
+        await Note.create({ title: 'first', date: new Date() });
+
+        const svr = server({
+          listProjection: async (_req: any, item: any) => {
+            return {
+              title: item.title.toUpperCase(),
+              isAsync: true
+            };
+          }
+        });
+
+        const res = await request(svr)
+          .get('/notes')
+          .expect(200);
+
+        expect(res.body[0]).toHaveProperty('isAsync', true);
+      });
+
+      it('supports sync projection on query', async () => {
+        await Note.create({ title: 'first', date: new Date() });
+
+        const svr = server({
+          listProjection: (_req: any, item: any) => {
+            return {
+              title: item.title,
+              isSync: true
+            };
+          }
+        });
+
+        const res = await request(svr)
+          .get('/notes')
+          .expect(200);
+
+        expect(res.body[0]).toHaveProperty('isSync', true);
+      });
+
+      it('supports async projection on detail', async () => {
+        const note = await Note.create({
+          title: 'asyncDetail',
+          date: new Date()
+        });
+
+        const svr = server({
+          detailProjection: async (_req: any, item: any) => {
+            return {
+              title: item.title,
+              asyncDetail: true
+            };
+          }
+        });
+
+        const res = await request(svr)
+          .get('/notes/' + note.id)
+          .expect(200);
+
+        expect(res.body).toEqual({
+          title: 'asyncDetail',
+          asyncDetail: true
+        });
+      });
+    });
+
+    describe('Async & Sync beforeSave', () => {
+      it('supports async beforeSave on insert', async () => {
+        const svr = server(false);
+        const content = 'created with async beforeSave';
+        const opts = {
+          beforeSave: async (_req: any, model: any) => {
+            model.content = content;
+          }
+        };
+        svr.post('/notes', svr.notes!.insert(opts));
+
+        const res = await request(svr)
+          .post('/notes')
+          .send({ title: 'Async note', date: new Date() })
+          .expect(201);
+
+        expect(res.body.content).toBe(content);
+      });
+
+      it('supports sync beforeSave on insert', async () => {
+        const svr = server(false);
+        const content = 'created with sync beforeSave';
+        const opts = {
+          beforeSave: (_req: any, model: any) => {
+            model.content = content;
+          }
+        };
+        svr.post('/notes', svr.notes!.insert(opts));
+
+        const res = await request(svr)
+          .post('/notes')
+          .send({ title: 'Sync note', date: new Date() })
+          .expect(201);
+
+        expect(res.body.content).toBe(content);
+      });
+
+      it('supports async beforeSave on update', async () => {
+        const note = await Note.create({
+          title: 'beforeSaveUpdate',
+          date: new Date()
+        });
+
+        const svr = server(false);
+        const content = 'updated with async beforeSave';
+        const opts = {
+          beforeSave: async (_req: any, model: any) => {
+            model.content = content;
+          }
+        };
+        svr.patch('/notes/:id', svr.notes!.update(opts));
+
+        const res = await request(svr)
+          .patch('/notes/' + note.id)
+          .send({ title: 'new title' })
+          .expect(200);
+
+        expect(res.body.content).toBe(content);
+      });
+    });
+
+    describe('Resource Class Export', () => {
+      it('allows direct instantiation of Resource class', () => {
+        const resource = new restifyMongoose.Resource(Note);
+        expect(resource).toBeInstanceOf(restifyMongoose.Resource);
+        expect(resource.Model).toBe(Note);
+      });
+    });
+  });
+
 });
 
-function containsAuthor(posts, name) {
+function containsAuthor(posts: any[], name: string): boolean {
   return posts.some(post => post.author && post.author.name === name);
 }
 
-function containsContributor(posts, name) {
-  return posts.some(post => post.contributors && post.contributors.some(contributor => contributor.name === name));
+function containsContributor(posts: any[], name: string): boolean {
+  return posts.some(post => post.contributors && post.contributors.some((contributor: any) => contributor.name === name));
 }
