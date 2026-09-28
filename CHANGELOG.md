@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [6.0.0](https://github.com/saintedlama/restify-mongoose/compare/v5.0.0...v6.0.0) (2026-09-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* Queries with operators outside `DEFAULT_ALLOWED_OPERATORS` now return 400. Use `queryOperators` to customize or allow additional operators.
+* Queries with operators outside `DEFAULT_ALLOWED_OPERATORS` now return 400. Use `queryOperators` to customize or allow additional operators.
+* 
+
+### Features
+
+* migrate codebase to typescript and modernize core dependencies ([#98](https://github.com/saintedlama/restify-mongoose/issues/98)) ([e2549cd](https://github.com/saintedlama/restify-mongoose/commit/e2549cda170152ef8ea64ef36d6a8e12b3ce38d3))
+* route options parity, async filter, and json-api content type ([#102](https://github.com/saintedlama/restify-mongoose/issues/102)) ([870df40](https://github.com/saintedlama/restify-mongoose/commit/870df404f42eb20005c6d10712d27e5a30dd7ac9))
+* secure `?q=` queries with default operator allowlist ([#100](https://github.com/saintedlama/restify-mongoose/issues/100)) ([4a30c3b](https://github.com/saintedlama/restify-mongoose/commit/4a30c3bcfc67c910cb5bcded432a4043c743d6bb))
+* secure `?q=` queries with default operator allowlist ([#101](https://github.com/saintedlama/restify-mongoose/issues/101)) ([8edc22f](https://github.com/saintedlama/restify-mongoose/commit/8edc22f6253d0143bc32959e8d04b6d1d7f36650))
+* use async await handlers ([#104](https://github.com/saintedlama/restify-mongoose/issues/104)) ([fdcefcc](https://github.com/saintedlama/restify-mongoose/commit/fdcefcc12d8047e7aa899c30e9ce0222e4cbcf30))
+
 ## [5.0.0](https://github.com/saintedlama/restify-mongoose/compare/v4.0.0...v5.0.0) (2019-10-17)
 
 
