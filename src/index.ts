@@ -46,13 +46,34 @@ function sendData(
   data: unknown
 ): void {
   if (format === 'json-api') {
+    const resFormatters = (res as { formatters?: Record<string, unknown> }).formatters;
+    if (resFormatters && !resFormatters['application/vnd.api+json'] && resFormatters['application/json']) {
+      resFormatters['application/vnd.api+json'] = resFormatters['application/json'];
+    }
+    res.setHeader('Content-Type', 'application/vnd.api+json');
     const responseObj: Record<string, unknown> = {
       [modelName]: data
     };
-    res.json(status, responseObj);
+    res.send(status, responseObj);
   } else {
     res.send(status, data);
   }
+}
+
+
+async function runFilter(
+  filter: restifyMongoose.FilterFunction | undefined,
+  req: restify.Request,
+  res: restify.Response
+): Promise<restifyMongoose.FilterResult | undefined> {
+  if (!filter) {
+    return undefined;
+  }
+  const result = filter(req, res);
+  if (result && typeof (result as Promise<restifyMongoose.FilterResult>).then === 'function') {
+    return await result;
+  }
+  return result;
 }
 
 async function runProjection<T, R = unknown>(
@@ -216,7 +237,7 @@ function applyTotalCount(res: restify.Response, totalCount: number): void {
 
 type QueryModifiers = {
   select(arg: string): unknown;
-  populate(arg: string): unknown;
+  populate(arg: unknown): unknown;
   sort(arg: string): unknown;
 };
 
@@ -234,13 +255,17 @@ function applySelect(
 
 function applyPopulate(
   query: QueryModifiers,
-  options: { populate?: string },
+  options: { populate?: restifyMongoose.PopulateOption },
   req: restify.Request
 ): void {
   const reqQuery = req.query as Record<string, string | undefined> | undefined;
   const populate = (reqQuery && reqQuery.populate) || options.populate;
   if (populate) {
-    query.populate(parseCommaParam(populate));
+    if (typeof populate === 'string') {
+      query.populate(parseCommaParam(populate));
+    } else {
+      query.populate(populate);
+    }
   }
 }
 
@@ -269,7 +294,7 @@ function restifyMongoose<T>(
 
 namespace restifyMongoose {
   export type FilterResult = Record<string, unknown>;
-  export type FilterFunction = (req: restify.Request, res: restify.Response) => FilterResult;
+  export type FilterFunction = (req: restify.Request, res: restify.Response) => Promise<FilterResult> | FilterResult;
   export type filterFunction = FilterFunction;
 
   export type ProjectionCallback<R = unknown> = (err?: unknown, doc?: R) => void;
@@ -301,20 +326,25 @@ namespace restifyMongoose {
     message?: string;
   };
 
+  export type PopulateOption =
+    | string
+    | mongoose.PopulateOptions
+    | (string | mongoose.PopulateOptions)[];
+
   export type BaseOptions = {
     baseUrl?: string;
     outputFormat?: string; // default 'regular'
     modelName?: string; // default Model.modelName
+    queryString?: string;
+    filter?: FilterFunction;
   };
 
   export type ResourceOptions<T, R = unknown> = BaseOptions & {
-    queryString?: string;
     pageSize?: number;
     maxPageSize?: number;
     listProjection?: ProjectionFunction<T, R>;
     detailProjection?: ProjectionFunction<T, R>;
-    filter?: FilterFunction;
-    populate?: string;
+    populate?: PopulateOption;
     select?: string;
     sort?: string;
     beforeSave?: BeforeSaveFunction<T>;
@@ -326,7 +356,7 @@ namespace restifyMongoose {
     pageSize?: number;
     maxPageSize?: number;
     projection?: ProjectionFunction<T, R>;
-    populate?: string;
+    populate?: PopulateOption;
     select?: string;
     sort?: string;
     queryOperators?: QueryOperatorPolicy;
@@ -335,7 +365,7 @@ namespace restifyMongoose {
 
   export type DetailOptions<T, R = unknown> = BaseOptions & {
     projection?: ProjectionFunction<T, R>;
-    populate?: string;
+    populate?: PopulateOption;
     select?: string;
   };
 
@@ -347,7 +377,9 @@ namespace restifyMongoose {
     beforeSave?: BeforeSaveFunction<T>;
   };
 
-  export type ServeOptions = {
+  export type DeleteOptions = BaseOptions;
+
+  export type ServeOptions<T = unknown> = ResourceOptions<T> & {
     before?: restify.RequestHandler[] | restify.RequestHandler;
     after?: restify.RequestHandler[] | restify.RequestHandler;
   };
@@ -384,6 +416,8 @@ namespace restifyMongoose {
         projection: this.options.listProjection,
         outputFormat: this.options.outputFormat,
         modelName: this.options.modelName,
+        queryString: this.options.queryString,
+        filter: this.options.filter,
         populate: this.options.populate,
         select: this.options.select,
         sort: this.options.sort,
@@ -426,8 +460,8 @@ namespace restifyMongoose {
             applyPopulate(query, queryOptions, req);
             applySort(query, queryOptions, req);
 
-            if (this.options.filter) {
-              const filterQuery = this.options.filter(req, res);
+            const filterQuery = await runFilter(queryOptions.filter, req, res);
+            if (filterQuery) {
               query = query.where(filterQuery);
               countQuery = countQuery.where(filterQuery);
             }
@@ -474,6 +508,8 @@ namespace restifyMongoose {
 
     detail(options?: DetailOptions<T>): restify.RequestHandler {
       const detailOptions: DetailOptions<T> = {
+        queryString: this.options.queryString,
+        filter: this.options.filter,
         projection: this.options.detailProjection,
         outputFormat: this.options.outputFormat,
         modelName: this.options.modelName,
@@ -486,7 +522,7 @@ namespace restifyMongoose {
         void (async () => {
           try {
             const find = {
-              [this.options.queryString!]: req.params.id
+              [detailOptions.queryString!]: req.params.id
             } as ModelFilter<T>;
 
             let query = this.Model.findOne(find);
@@ -494,8 +530,8 @@ namespace restifyMongoose {
             applySelect(query, detailOptions, req);
             applyPopulate(query, detailOptions, req);
 
-            if (this.options.filter) {
-              const filterQuery = this.options.filter(req, res);
+            const filterQuery = await runFilter(detailOptions.filter, req, res);
+            if (filterQuery) {
               query = query.where(filterQuery);
             }
 
@@ -548,6 +584,8 @@ namespace restifyMongoose {
 
     update(options?: UpdateOptions<T>): restify.RequestHandler {
       const updateOptions: UpdateOptions<T> = {
+        queryString: this.options.queryString,
+        filter: this.options.filter,
         baseUrl: this.options.baseUrl,
         beforeSave: this.options.beforeSave,
         outputFormat: this.options.outputFormat,
@@ -559,13 +597,13 @@ namespace restifyMongoose {
         void (async () => {
           try {
             const find = {
-              [this.options.queryString!]: req.params.id
+              [updateOptions.queryString!]: req.params.id
             } as ModelFilter<T>;
 
             let query = this.Model.findOne(find);
 
-            if (this.options.filter) {
-              const filterQuery = this.options.filter(req, res);
+            const filterQuery = await runFilter(updateOptions.filter, req, res);
+            if (filterQuery) {
               query = query.where(filterQuery);
             }
 
@@ -597,18 +635,26 @@ namespace restifyMongoose {
       };
     }
 
-    remove(): restify.RequestHandler {
+    remove(options?: DeleteOptions): restify.RequestHandler {
+      const deleteOptions: DeleteOptions = {
+        queryString: this.options.queryString,
+        filter: this.options.filter,
+        outputFormat: this.options.outputFormat,
+        modelName: this.options.modelName,
+        ...options
+      };
+
       return (req: restify.Request, res: restify.Response, next: restify.Next) => {
         void (async () => {
           try {
             const find = {
-              [this.options.queryString!]: req.params.id
+              [deleteOptions.queryString!]: req.params.id
             } as ModelFilter<T>;
 
             let query = this.Model.findOne(find);
 
-            if (this.options.filter) {
-              const filterQuery = this.options.filter(req, res);
+            const filterQuery = await runFilter(deleteOptions.filter, req, res);
+            if (filterQuery) {
               query = query.where(filterQuery);
             }
 
@@ -619,8 +665,8 @@ namespace restifyMongoose {
 
             await model.deleteOne();
 
-            res.send(200, model);
             this.emit('remove', model);
+            sendData(res, deleteOptions.outputFormat!, deleteOptions.modelName!, 200, model);
             return next();
           } catch (err) {
             return next(err);
@@ -629,7 +675,11 @@ namespace restifyMongoose {
       };
     }
 
-    serve(path: string, server: restify.Server, options?: ServeOptions): void {
+    delete(options?: DeleteOptions): restify.RequestHandler {
+      return this.remove(options);
+    }
+
+    serve(path: string, server: restify.Server, options?: ServeOptions<T>): void {
       const serveOptions = options || {};
 
       const handlerChain = (
@@ -654,11 +704,11 @@ namespace restifyMongoose {
 
       const closedPath = path[path.length - 1] === '/' ? path : path + '/';
 
-      server.get(path, handlerChain(this.query(), serveOptions.before, serveOptions.after));
-      server.get(closedPath + ':id', handlerChain(this.detail(), serveOptions.before, serveOptions.after));
-      server.post(path, handlerChain(this.insert(), serveOptions.before, serveOptions.after));
-      server.del(closedPath + ':id', handlerChain(this.remove(), serveOptions.before, serveOptions.after));
-      server.patch(closedPath + ':id', handlerChain(this.update(), serveOptions.before, serveOptions.after));
+      server.get(path, handlerChain(this.query(serveOptions), serveOptions.before, serveOptions.after));
+      server.get(closedPath + ':id', handlerChain(this.detail(serveOptions), serveOptions.before, serveOptions.after));
+      server.post(path, handlerChain(this.insert(serveOptions), serveOptions.before, serveOptions.after));
+      server.del(closedPath + ':id', handlerChain(this.remove(serveOptions), serveOptions.before, serveOptions.after));
+      server.patch(closedPath + ':id', handlerChain(this.update(serveOptions), serveOptions.before, serveOptions.after));
     }
   }
 }

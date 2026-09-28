@@ -1415,6 +1415,130 @@ describe('restify-mongoose', function () {
         expect(resource.Model).toBe(Note);
       });
     });
+
+    describe('Options Parity & Consistency (#5, #31, #34, #45)', () => {
+      it('detail respects queryString provided in method options (#31)', async () => {
+        const note = await Note.create({ title: 'unique-slug', date: new Date() });
+        const svr = server(false);
+        svr.get('/notes/:id', svr.notes!.detail({ queryString: 'title' }));
+
+        const res = await request(svr)
+          .get('/notes/unique-slug')
+          .expect(200);
+
+        expect(res.body._id).toBe(note.id);
+      });
+
+      it('remove uses sendData and supports json-api outputFormat (#45)', async () => {
+        const note = await Note.create({ title: 'to-delete', date: new Date() });
+        const svr = server(false);
+        svr.del('/notes/:id', svr.notes!.remove({ outputFormat: 'json-api' }));
+
+        const res = await request(svr)
+          .del('/notes/' + note.id)
+          .expect('Content-Type', 'application/vnd.api+json')
+          .expect(200);
+
+        expect(res.body.notes).toBeDefined();
+        expect(res.body.notes.title).toBe('to-delete');
+      });
+
+      it('method-level filter overrides resource-level filter (#34)', async () => {
+        await Note.create([
+          { title: 'res-visible', content: 'visible-by-resource', date: new Date() },
+          { title: 'method-visible', content: 'visible-by-method', date: new Date() }
+        ]);
+
+        const svr = server({
+          filter: () => ({ content: 'visible-by-resource' })
+        }, false);
+        svr.get('/notes', svr.notes!.query({
+          filter: () => ({ content: 'visible-by-method' })
+        }));
+
+        const res = await request(svr).get('/notes').expect(200);
+        expect(res.body).toHaveLength(1);
+        expect(res.body[0].title).toBe('method-visible');
+      });
+    });
+
+    describe('Async Filter Support (#39)', () => {
+      it('supports async filter on query', async () => {
+        await Note.create([
+          { title: 'allowed', content: 'public', date: new Date() },
+          { title: 'restricted', content: 'private', date: new Date() }
+        ]);
+
+        const svr = server(false);
+        const asyncFilter = async () => {
+          await new Promise((r) => setTimeout(r, 10));
+          return { content: 'public' };
+        };
+        svr.get('/notes', svr.notes!.query({ filter: asyncFilter }));
+
+        const res = await request(svr).get('/notes').expect(200);
+        expect(res.body).toHaveLength(1);
+        expect(res.body[0].title).toBe('allowed');
+      });
+
+      it('supports async filter on detail', async () => {
+        const note = await Note.create({ title: 'private-note', content: 'secret', date: new Date() });
+        const svr = server(false);
+        const asyncFilter = async () => {
+          return { content: 'not-matching' };
+        };
+        svr.get('/notes/:id', svr.notes!.detail({ filter: asyncFilter }));
+
+        await request(svr).get('/notes/' + note.id).expect(404);
+      });
+
+      it('supports async filter on remove', async () => {
+        const note = await Note.create({ title: 'secret-note', content: 'secret', date: new Date() });
+        const svr = server(false);
+        const asyncFilter = async () => {
+          return { content: 'public-only' };
+        };
+        svr.del('/notes/:id', svr.notes!.remove({ filter: asyncFilter }));
+
+        await request(svr).del('/notes/' + note.id).expect(404);
+      });
+    });
+
+    describe('JSON-API Content-Type (#44)', () => {
+      it('sets application/vnd.api+json header on query with json-api format', async () => {
+        await Note.create({ title: 'api-note', date: new Date() });
+        const res = await request(server({ outputFormat: 'json-api' }))
+          .get('/notes')
+          .expect('Content-Type', 'application/vnd.api+json')
+          .expect(200);
+
+        expect(res.body.notes).toBeDefined();
+      });
+
+      it('sets application/vnd.api+json header on post with json-api format', async () => {
+        const res = await request(server({ outputFormat: 'json-api' }))
+          .post('/notes')
+          .send({ title: 'new api note', date: new Date() })
+          .expect('Content-Type', 'application/vnd.api+json')
+          .expect(201);
+
+        expect(res.body.notes).toBeDefined();
+      });
+    });
+
+    describe('Populate Options Object (#55)', () => {
+      it('supports populate options object syntax', async () => {
+        const note = await Note.create({ title: 'parent note', date: new Date() });
+        const svr = server(false);
+        svr.get('/notes', svr.notes!.query({
+          populate: { path: 'author', select: 'name' }
+        }));
+
+        const res = await request(svr).get('/notes').expect(200);
+        expect(res.body).toHaveLength(1);
+        expect(res.body[0]._id).toBe(note.id);
+      });
+    });
   });
 
   describe('Query Security & Sanitization', function () {

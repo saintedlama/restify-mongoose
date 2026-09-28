@@ -281,18 +281,35 @@ note.query({select: 'title date'});
 ```
 
 ## Filter
-Results can be filtered with a function, which is set in the options object of the constructor or on the `query` and `detail` function.
+Results can be filtered with a function, which is set in the options object of the constructor or per-route on `query`, `detail`, `update`, and `remove`.
 
-The function takes two parameters: the request object and the response object. The return value of the function is a query that is passed directly to the [mongoose where query function](http://mongoosejs.com/docs/api.html#query_Query-where).
+The function takes two parameters: the request object and the response object. The return value is a query object passed directly to the [mongoose where query function](https://mongoosejs.com/docs/api/query.html#Query.prototype.where()).
 
-For instance, you can use a filter to display only results for a particular user:
+Filter functions support both synchronous returns and Promises/`async` functions:
 
-```javascript
-var filterUser = function(req, res) {
-  return {user: req.user};
-}
+```typescript
+// Synchronous filter
+const filterUser = (req, res) => {
+  return { user: req.user.id };
+};
 
-var notes = restifyMongoose(Note, {filter: filterUser});
+const notes = restifyMongoose(Note, { filter: filterUser });
+
+// Asynchronous filter (e.g. checking permissions or external service)
+const notes = restifyMongoose(Note, {
+  filter: async (req, res) => {
+    const orgId = await fetchUserOrganization(req.user.id);
+    return { organization: orgId };
+  }
+});
+
+// Route-level filter (overrides Resource-level filter)
+server.get('/notes', notes.query({
+  filter: (req, res) => ({ public: true })
+}));
+server.del('/notes/:id', notes.remove({
+  filter: (req, res) => ({ user: req.user.id }) // users can only delete their own notes
+}));
 ```
 
 ## Projection
@@ -344,18 +361,122 @@ var users = restifyMongoose(User);
 users.detail({projection: userProjection});
 users.query({projection: userProjection});
 ```
+
+## beforeSave
+
+The `beforeSave` hook allows inspecting or transforming a document before it is saved to MongoDB during `insert` (POST) and `update` (PATCH) operations. If validation or authorization fails, an error can be returned or thrown to abort the save.
+
+`beforeSave` can be defined in the Resource constructor options or passed directly to `insert({ beforeSave })` or `update({ beforeSave })`.
+
+Both async/await and callback forms are supported:
+
+```typescript
+// Async / Promise style (Recommended)
+const notes = restifyMongoose(Note, {
+  beforeSave: async (req, item) => {
+    // Modify model before persisting
+    item.updatedBy = req.user.id;
+    item.lastModified = new Date();
+
+    if (item.isArchived && !req.user.isAdmin) {
+      throw new Error('Only administrators can archive notes');
+    }
+  }
+});
+
+// Callback style
+const notes = restifyMongoose(Note, {
+  beforeSave: (req, item, cb) => {
+    item.updatedBy = req.user.id;
+    cb(null); // Pass error to cb(err) to abort
+  }
+});
+```
+
+## Authentication and Access Control
+
+`restify-mongoose` works seamlessly with standard Restify middleware for authentication and multi-tenant access control.
+
+### 1. Route Authentication Middleware (`before`)
+Use the `before` option on `serve()` to enforce authentication (e.g. JWT verification, session checks) across all endpoints:
+
+```typescript
+import restify from 'restify';
+import restifyMongoose from 'restify-mongoose';
+import Note from './models/note';
+
+const server = restify.createServer();
+const notes = restifyMongoose(Note);
+
+// Middleware that authenticates user and sets req.user
+function authenticate(req, res, next) {
+  const token = req.header('Authorization');
+  if (!token) {
+    return next(new restify.errors.UnauthorizedError('Authentication required'));
+  }
+  req.user = verifyToken(token);
+  next();
+}
+
+// Pass middleware in "before" option
+notes.serve('/notes', server, {
+  before: [authenticate]
+});
+```
+
+### 2. Tenant and Resource Ownership Isolation (`filter`)
+Combine authentication with dynamic `filter` (sync or async) to ensure users can only view, update, or delete records they own:
+
+```typescript
+const notes = restifyMongoose(Note, {
+  // Enforce ownership across query, detail, update, and remove
+  filter: (req, res) => {
+    if (req.user.isAdmin) {
+      return {}; // Admins can access all records
+    }
+    return { owner: req.user.id }; // Regular users only see their own
+  }
+});
+
+notes.serve('/notes', server, {
+  before: authenticate
+});
+```
+
+### 3. Creation Ownership & Validation (`beforeSave`)
+Assign ownership when documents are created or updated:
+
+```typescript
+const notes = restifyMongoose(Note, {
+  beforeSave: (req, item) => {
+    if (req.method === 'POST') {
+      item.owner = req.user.id;
+    }
+  }
+});
+```
+
 ## Output format
 
-The output format can be changed to a more compatible one with the [json-api](http://jsonapi.org/format/) standard to use the API with frameworks like Ember.
+The output format can be changed to [json-api](https://jsonapi.org/) format to use with JSON:API clients (such as Ember Data).
 
-```javascript
-var users = restifyMongoose(User, {outputFormat: 'json-api'});
+When `outputFormat: 'json-api'` is enabled:
+- Responses automatically include the standard `Content-Type: application/vnd.api+json` header.
+- Responses are formatted with the model name as the root key: `{ [modelName]: data }`.
+- Supported across all endpoints: `query`, `detail`, `insert`, `update`, and `remove`.
+
+```typescript
+const users = restifyMongoose(User, { outputFormat: 'json-api' });
 users.serve('/users', restifyServer);
 ```
-Also you can specify a custom model name like this:
 
-```javascript
-var users = restifyMongoose(User, {outputFormat: 'json-api', modelName: 'admins'});
+You can also customize the root key with `modelName`:
+
+```typescript
+const users = restifyMongoose(User, {
+  outputFormat: 'json-api',
+  modelName: 'admins'
+});
 users.serve('/users', restifyServer);
 ```
 
@@ -382,10 +503,27 @@ server.get('/notes/:id', notes.detail({populate: 'author'}))
 ```
 
 ### Populating multiple fields
-Multiple referenced documents can be populated by using a comma-delimited list of the desired fields in any of the three methods above.
+Multiple referenced documents can be populated by using a comma-delimited list of the desired fields:
 ```javascript
-// e.g.
 var notes = restifyMongoose(Note, {populate: 'author,contributors'});
+```
+
+### Advanced Populate Options (Objects & Arrays)
+In addition to string lists, `populate` accepts standard Mongoose populate options objects or arrays of objects (e.g. for selective field population or deep population):
+
+```typescript
+// Object syntax with path and select
+const notes = restifyMongoose(Note, {
+  populate: { path: 'author', select: 'name email' }
+});
+
+// Array of populate options
+server.get('/notes', notes.query({
+  populate: [
+    { path: 'author', select: 'name' },
+    { path: 'contributors', select: 'name avatar' }
+  ]
+}));
 ```
 
 # Contribute
