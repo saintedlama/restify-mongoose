@@ -2,7 +2,7 @@ name: Publish
 
 on:
   push:
-    branches: [main, master]
+    branches: [master]
 
 permissions:
   contents: write
@@ -45,5 +45,3 @@ jobs:
 
       - name: Publish to npm
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
